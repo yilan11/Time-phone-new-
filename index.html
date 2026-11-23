@@ -3,27 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#ede8e2">
-  <title>小手机 · 原型</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="app.js" defer></script>
+  <meta name="theme-color" content="#ffffff">
+  <title>小手机 · 白日</title>
+  <link rel="stylesheet" href="style.css?v=20261123-white1">
+  <script src="app.js?v=20261123-white1" defer></script>
 </head>
 <body>
   <main class="phone" aria-label="小手机原型">
     <div class="status"><span id="clock">09:41</span><span>●●●  ▰</span></div>
     <section class="screen active" id="home">
-      <div class="home-top"><p>你的另一部手机</p><h1 id="bigClock">09:41</h1><p id="homeDate"></p></div>
-      <div class="widget"><span class="avatar">☁</span><div><strong>阿遥</strong><p id="widgetText">今天好像有些事想告诉你。</p></div></div>
+      <div class="home-top"><p class="eyebrow">A LITTLE SPACE FOR YOU</p><h1 id="bigClock">09:41</h1><p id="homeDate"></p></div>
+      <div class="home-art" aria-hidden="true"><div class="art-sun"></div><div class="art-vase"></div><div class="art-stem"></div><span>slow days, soft moments.</span></div>
+      <div class="widget"><span class="avatar">a.</span><div><strong id="homeTitle">把日子过成喜欢的样子</strong><p id="homeSubtitle">留一点空白，等故事发生。</p></div></div>
       <div class="app-grid">
-        <button data-go="chat"><span>💬</span>聊天</button><button data-go="feed"><span>✦</span>动态</button><button data-go="notice"><span>🔔</span>通知 <i id="badge"></i></button><button data-go="settings"><span>⚙</span>设置</button>
+        <button data-go="chat"><span><svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-10a9 9 0 0 1 18 0Z"/><path d="M7 10h8M7 14h5"/></svg></span>聊天</button>
+        <button data-go="settings"><span><svg viewBox="0 0 24 24"><path d="M5 3v18M12 3v18M19 3v18"/><path d="M2 8h6M9 16h6M16 7h6"/></svg></span>设置</button>
+        <button data-go="beauty"><span><svg viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg></span>美化</button>
+        <button data-go="encounter"><span><svg viewBox="0 0 24 24"><path d="M12 6c-3-3-7-3-10-1v14c4-2 7-1 10 1 3-2 6-3 10-1V5c-3-2-7-2-10 1Zm0 0v14"/></svg></span>相遇</button>
       </div>
-      <p class="home-note">基础原型 · 可在设置中连接 AI</p>
+      <p class="home-note">白日 · LITTLE PHONE <span>● ○ ○</span></p>
     </section>
     <section class="screen" id="chat">
       <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>阿遥</b><small><span id="chatStatus">演示模式 · 尚未配置接口</span></small></div></header>
       <div class="scroll chat-messages" id="messages" aria-live="polite"></div>
       <form id="chatForm" class="composer"><input id="chatInput" placeholder="给阿遥发消息…" autocomplete="off" required maxlength="1000"><button type="submit">发送</button></form>
     </section>
+    <span id="badge" hidden></span>
     <section class="screen" id="feed">
       <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><b>动态</b></header>
       <div class="scroll" id="posts"></div>
@@ -42,7 +47,35 @@
 <label class="remember"><input id="rememberKey" type="checkbox">在本机记住密钥（明文存储，不建议共享设备使用）</label>
 <button type="submit">保存并启用</button><button type="button" id="disableApi">关闭接口并忘记密钥</button>
 </form><p id="apiStatus" class="hint" role="status" aria-live="polite"></p>
-<p class="hint">使用 OpenAI 兼容的 Chat Completions 接口。地址填到 /v1 即可，也支持完整 /chat/completions 地址。消息会发送给填写的服务商，可能产生费用。服务商必须允许浏览器跨域请求；本页没有代理服务器。</p><h2>关于这个原型</h2><p>这是互动界面的第一版：演示角色、日常动态、剧情事件和本地保存。未配置接口时为固定演示回复；启用接口后，发送消息才会请求 AI。动态与剧情仍为演示内容，关闭网页后不会后台运行。</p><button id="reset" class="danger">清除本机演示数据</button><p class="hint">清除后会重新显示初始演示内容；此操作不可撤销。</p></div>
+<p class="hint">使用 OpenAI 兼容的 Chat Completions 接口。地址填到 /v1 即可，也支持完整 /chat/completions 地址。消息会发送给填写的服务商，可能产生费用。服务商必须允许浏览器跨域请求；本页没有代理服务器。</p><h2>白日 · 小手机</h2><p>聊天与相遇共用上面的接口配置，分别保存对话。未连接时为预设试玩。记录和美化保存在当前浏览器；关闭网页后不会后台运行。</p><p class="hint">版本：白日 1.0 · 2026.11.23</p><button id="reset" class="danger">清除本机演示数据</button><p class="hint">清除后会重新显示初始演示内容；此操作不可撤销。</p></div>
+    </section>
+    <section class="screen" id="beauty">
+      <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>美化</b><small>让这片小天地更像你</small></div></header>
+      <div class="scroll settings-body"><div class="section-label">YOUR OWN LITTLE SPACE</div><h2>桌面外观</h2>
+        <form id="beautyForm" class="api-form">
+          <label>桌面标题<input id="beautyTitle" maxlength="30" required></label>
+          <label>桌面小字<input id="beautySubtitle" maxlength="60"></label>
+          <div class="color-row"><label>背景颜色<input id="beautyBg" type="color" value="#ffffff"></label><label>应用图标<input id="beautyIcon" type="color" value="#eeeeee"></label></div>
+          <label>文字大小<select id="beautySize"><option value="14">小巧</option><option value="16">标准</option><option value="18">大字</option></select></label>
+          <button type="submit">保存外观</button><button type="button" id="beautyDefault" class="secondary">恢复白色与灰色</button>
+        </form><p id="beautyStatus" class="hint" role="status"></p>
+      </div>
+    </section>
+    <section class="screen" id="encounter">
+      <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>相遇</b><small id="storyMode">预设试玩 · 可在设置中连接 AI</small></div><button id="storyToggle" class="header-action" aria-expanded="false" aria-controls="storySettings">剧本</button></header>
+      <div id="storySettings" class="story-settings" hidden>
+        <form id="storyConfigForm" class="api-form">
+          <label>故事名称<input id="storyTitleInput" maxlength="60" required></label>
+          <label>角色设定<textarea id="storyPersona" maxlength="4000" rows="3" required></textarea></label>
+          <label>世界背景<textarea id="storyWorld" maxlength="6000" rows="3" required></textarea></label>
+          <label>开场白<textarea id="storyOpening" maxlength="4000" rows="3" required></textarea></label>
+          <button type="submit">保存设定</button><button type="button" id="storyRestart" class="secondary">按当前设定重新开始</button>
+          <p class="hint">保存后用于后续 AI 续写；开场白在重新开始时生效。重新开始会清除本段剧情。当前为单剧本，不支持酒馆角色卡导入。</p>
+        </form>
+      </div>
+      <div class="scroll story-scroll" id="storyScroll"><div class="section-label">ENCOUNTER / CHAPTER 01</div><h2 id="storyTitle"></h2><div id="storyMessages" aria-live="polite"></div><div id="storyChoices" class="story-choices"></div></div>
+      <p id="storyStatus" class="story-status" role="status"></p>
+      <form id="storyForm" class="composer"><input id="storyInput" placeholder="写下你的行动，或说一句话…" autocomplete="off" maxlength="2000" required><button type="submit">继续</button></form>
     </section>
     <div class="home-bar" role="button" tabindex="0" aria-label="回到桌面" data-go="home"></div>
   </main>

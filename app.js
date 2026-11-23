@@ -1,4 +1,4 @@
-/* 第一版离线演示：所有角色文本均为预设，不调用模型。 */
+/* 聊天保留旧版数据；美化与相遇各自保存。 */
 const KEY='little-phone-demo-v1';
 const initial=()=>({messages:[{mine:false,text:'今天路过一家旧书店，看到一本夹着车票的书。忽然很想跟你讲。',time:Date.now()}],posts:[{id:'daily',type:'日常',text:'傍晚路过旧书店，门口的风铃响了好久。买了杯热的，坐着看了一会儿人来人往。',likes:0,liked:false,comments:[]},{id:'story',type:'剧情事件',text:'在一本旧书里发现了一张没有目的地的车票，背面写着：「明天六点，来车站。」\n我有点好奇。你觉得我该去看看吗？',likes:0,liked:false,comments:[],choice:null}],notices:[{text:'阿遥发来一条消息',target:'chat',read:false},{text:'阿遥发布了一条日常动态',target:'feed',read:false},{text:'有一件与旧书店有关的事等你回应',target:'feed',read:false}]});
 let state;
@@ -6,7 +6,7 @@ try {const saved=JSON.parse(localStorage.getItem(KEY));state=saved&&Array.isArra
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){console.warn('本地保存失败：',e);alert('浏览器没有成功保存数据；关闭页面后可能丢失。')}}
 function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node}
-function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));if(id==='chat'){state.notices.filter(n=>n.target==='chat').forEach(n=>n.read=true);renderNotices();save();$('messages').scrollTop=$('messages').scrollHeight}if(id==='feed'){state.notices.filter(n=>n.target==='feed').forEach(n=>n.read=true);renderNotices();save()}}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));if(id==='chat'){state.notices.filter(n=>n.target==='chat').forEach(n=>n.read=true);renderNotices();save();$('messages').scrollTop=$('messages').scrollHeight}if(id==='encounter'){$('storyScroll').scrollTop=$('storyScroll').scrollHeight}if(id==='feed'){state.notices.filter(n=>n.target==='feed').forEach(n=>n.read=true);renderNotices();save()}}
 document.querySelectorAll('[data-go]').forEach(b=>{b.addEventListener('click',()=>go(b.dataset.go));if(b.getAttribute('role')==='button')b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go(b.dataset.go)}})});
 function clock(){const now=new Date();const time=now.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});$('clock').textContent=time;$('bigClock').textContent=time;$('homeDate').textContent=now.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})}clock();setInterval(clock,30000);
 function renderMessages(){const box=$('messages');box.replaceChildren();state.messages.forEach(m=>{const b=el('div','bubble'+(m.mine?' mine':''),m.text);b.append(el('small','',new Date(m.time).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})));box.append(b)});box.scrollTop=box.scrollHeight}
@@ -18,12 +18,12 @@ let chatBusy=false;
 function apiStatus(text){$('apiStatus').textContent=text;$('chatStatus').textContent=chatBusy?'正在回复…':apiConfig.enabled?'AI 接口已启用':'演示模式 · 尚未启用接口'}
 $('apiBase').value=apiConfig.base;$('apiModel').value=apiConfig.model;$('apiKey').value=apiConfig.key;$('rememberKey').checked=apiConfig.remember;
 apiStatus(apiConfig.enabled?'接口已启用；发送消息时才会请求，尚未验证连接。':'尚未启用接口。');
-$('apiForm').addEventListener('submit',e=>{e.preventDefault();if(chatBusy){apiStatus('请等待当前回复结束后再更改接口。');return}try{
+$('apiForm').addEventListener('submit',e=>{e.preventDefault();if(chatBusy||storyBusy){apiStatus('请等待当前回复结束后再更改接口。');return}try{
 const base=$('apiBase').value.trim().replace(/\/+$/,'');const url=new URL(base);if(url.protocol!=='https:'&&!(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname)))throw new Error('请使用 HTTPS 地址（本机地址可使用 HTTP）。');if(url.username||url.password||url.search||url.hash)throw new Error('地址不能包含账号、密码、查询参数或锚点。');
 const model=$('apiModel').value.trim(),key=$('apiKey').value.trim(),remember=$('rememberKey').checked;if(!model||!key)throw new Error('请填写模型名称和 API Key。');
 const next={enabled:true,base,model,key,remember};localStorage.setItem(API_CONFIG_KEY,JSON.stringify({...next,key:remember?key:''}));apiConfig=next;apiStatus('已启用。'+(remember?'密钥已明文保存在本机。':'密钥仅在本次页面有效，刷新后需要重新填写。')+' 尚未验证连接。');
 }catch(err){apiStatus('未保存：'+err.message)}});
-$('disableApi').addEventListener('click',()=>{if(chatBusy){apiStatus('请等待当前回复结束后再关闭接口。');return}try{localStorage.removeItem(API_CONFIG_KEY);apiConfig.enabled=false;apiConfig.key='';apiConfig.remember=false;$('apiKey').value='';$('rememberKey').checked=false;apiStatus('已关闭接口并忘记密钥，恢复演示模式。')}catch{apiStatus('无法清除本机配置，请检查浏览器存储权限。')}});
+$('disableApi').addEventListener('click',()=>{if(chatBusy||storyBusy){apiStatus('请等待当前回复结束后再关闭接口。');return}try{localStorage.removeItem(API_CONFIG_KEY);apiConfig.enabled=false;apiConfig.key='';apiConfig.remember=false;$('apiKey').value='';$('rememberKey').checked=false;apiStatus('已关闭接口并忘记密钥，恢复演示模式。')}catch{apiStatus('无法清除本机配置，请检查浏览器存储权限。')}});
 $('chatForm').addEventListener('submit',async e=>{
 e.preventDefault();if(chatBusy)return;const input=$('chatInput');const text=input.value.trim();if(!text)return;
 if(apiConfig.enabled&&!apiConfig.key){apiStatus('请重新填写密钥并保存后再聊天。');go('settings');return}
@@ -44,3 +44,67 @@ function renderPosts(){const box=$('posts');box.replaceChildren();state.posts.fo
 function renderNotices(){const box=$('notices');box.replaceChildren();$('badge').style.display=state.notices.some(n=>!n.read)?'block':'none';state.notices.forEach(n=>{const item=el('div','notice-item'+(!n.read?' unread':''),n.text);item.tabIndex=0;item.setAttribute('role','button');const open=()=>{n.read=true;save();renderNotices();go(n.target)};item.addEventListener('click',open);item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});box.append(item)});if(!state.notices.length)box.append(el('p','','还没有通知'))}
 $('reset').addEventListener('click',()=>{if(!confirm('确定清除本机演示数据吗？此操作不可撤销。'))return;state=initial();save();renderAll();go('home')});
 function renderAll(){renderMessages();renderPosts();renderNotices()}renderAll();
+// 美化只修改独立配置，不改写聊天或接口数据。
+const BEAUTY_KEY='little-phone-beauty-v1';
+const beautyDefault={title:'把日子过成喜欢的样子',subtitle:'留一点空白，等故事发生。',bg:'#ffffff',icon:'#eeeeee',size:'16'};
+let beauty={...beautyDefault};
+try{const v=JSON.parse(localStorage.getItem(BEAUTY_KEY));if(v&&typeof v==='object')beauty={...beauty,...v}}catch{}
+function persist(key,value,statusId){try{localStorage.setItem(key,JSON.stringify(value));return true}catch{$(statusId).textContent='保存失败：浏览器存储空间不足或不允许保存，请先保留重要内容。';return false}}
+function applyBeauty(){
+  $('homeTitle').textContent=beauty.title;$('homeSubtitle').textContent=beauty.subtitle;
+  document.documentElement.style.setProperty('--home-bg',/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');
+  document.documentElement.style.setProperty('--icon-bg',/^#[0-9a-f]{6}$/i.test(beauty.icon)?beauty.icon:'#eeeeee');
+  document.documentElement.style.setProperty('--reading-size',['14','16','18'].includes(beauty.size)?beauty.size+'px':'16px');
+  $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=beauty.bg;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;
+}
+$('beautyForm').addEventListener('submit',e=>{e.preventDefault();const title=$('beautyTitle').value.trim();if(!title){$('beautyStatus').textContent='请填写桌面标题。';return}const next={title,subtitle:$('beautySubtitle').value.trim(),bg:$('beautyBg').value,icon:$('beautyIcon').value,size:$('beautySize').value};if(persist(BEAUTY_KEY,next,'beautyStatus')){beauty=next;applyBeauty();$('beautyStatus').textContent='外观已保存，回到桌面就能看到。'}});
+$('beautyDefault').addEventListener('click',()=>{if(persist(BEAUTY_KEY,beautyDefault,'beautyStatus')){beauty={...beautyDefault};applyBeauty();$('beautyStatus').textContent='已恢复白底、灰色图标和默认文字。'}});applyBeauty();
+
+// 相遇拥有独立的剧情设定与历史，使用设置页同一接口。
+const STORY_KEY='little-phone-encounter-v1';
+const storyDefault=()=>({config:{title:'旧书店的来信',persona:'阿遥，旧书店的年轻店主。温和、细心，说话自然，似乎知道车票的来历。',world:'初秋的傍晚，一座临海小城。旧书店里藏着一张没有目的地的车票，车站的钟停在六点。故事基调温柔、神秘，围绕探索与相遇展开。',opening:'风铃轻轻一响，你推开旧书店的门。\n\n柜台后的阿遥抬起头，将一本旧书推到你面前。一张泛黄的车票从书页间滑落。\n\n「你终于来了。」他停了一下，像是怕惊动某个秘密，「要听听这张车票的故事吗？」'},messages:[],demoStep:0});
+let story=storyDefault(),storyBusy=false;
+try{const v=JSON.parse(localStorage.getItem(STORY_KEY));if(v&&v.config&&['title','persona','world','opening'].every(k=>typeof v.config[k]==='string')&&Array.isArray(v.messages))story=v}catch{}
+if(!story.messages.length)story.messages=[{mine:false,text:story.config.opening,time:Date.now()}];
+function storySave(){return persist(STORY_KEY,story,'storyStatus')}
+function storyMode(){return apiConfig.enabled?'AI 剧情 · 与聊天共用接口':'预设试玩 · 自定义行动仅记录，AI 模式可自由续写'}
+function renderStory(){
+ $('storyTitle').textContent=story.config.title;$('storyMode').textContent=storyMode();
+ const box=$('storyMessages');box.replaceChildren();
+ story.messages.forEach(m=>{const node=el('article','story-entry'+(m.mine?' mine':''));node.append(el('small','',m.mine?'你的行动':'故事 · '+(m.demo?'预设试玩':'叙事')),el('div','',m.text));box.append(node)});
+ const choices=$('storyChoices');choices.replaceChildren();
+ if(!apiConfig.enabled){['询问车票的来历','仔细观察四周'].forEach((text,i)=>{const btn=el('button','',text);btn.type='button';btn.disabled=storyBusy;btn.addEventListener('click',()=>advanceStory(text,i));choices.append(btn)})}
+ $('storyScroll').scrollTop=$('storyScroll').scrollHeight;
+}
+function fillStoryConfig(){ $('storyTitleInput').value=story.config.title;$('storyPersona').value=story.config.persona;$('storyWorld').value=story.config.world;$('storyOpening').value=story.config.opening; }
+$('storyToggle').addEventListener('click',()=>{const hidden=!$('storySettings').hidden;$('storySettings').hidden=hidden;$('storyToggle').setAttribute('aria-expanded',String(!hidden));if(hidden)renderStory()});
+$('storyConfigForm').addEventListener('submit',e=>{e.preventDefault();if(storyBusy){$('storyStatus').textContent='请等当前剧情回复结束。';return}const config={title:$('storyTitleInput').value.trim(),persona:$('storyPersona').value.trim(),world:$('storyWorld').value.trim(),opening:$('storyOpening').value.trim()};if(Object.values(config).some(x=>!x)){alert('请完整填写剧本设定。');return}story.config=config;const ok=storySave();renderStory();if(ok)alert('设定已保存。角色与世界背景用于后续 AI 续写，开场白在重新开始时生效。')});
+$('storyRestart').addEventListener('click',()=>{if(storyBusy)return;if(!confirm('将清除当前剧情，按已保存的设定重新开始。确定吗？'))return;story.messages=[{mine:false,text:story.config.opening,time:Date.now()}];story.demoStep=0;if(storySave())$('storyStatus').textContent='已按保存的剧本重新开始。';$('storySettings').hidden=true;$('storyToggle').setAttribute('aria-expanded','false');renderStory()});
+const demoScenes=[
+ ['阿遥将车票翻到背面，指了指那行褪色的小字。\n\n「它不是去某个地方的票，」他说，「它会带人回到一件没来得及完成的事。」\n\n窗外，远处车站的钟忽然响了一声。','你扫过书架，发现所有旧书的书脊上都有同一个小小印记：一轮月亮。\n\n阿遥注意到你的视线，将柜台上的台灯转向一张旧合照。「照片里的车站，你见过吗？」'],
+ ['「上一位拿到车票的人，留下了这封信。」阿遥从抽屉里取出信封，封口一直没有拆开。\n\n信上只有一句话：请陪我去车站。你愿意与他一起出门吗？','你走到窗前，玻璃映出一座陌生站台。回头看去，身后仍是安静的书店。\n\n阿遥拿起外套。「看来它已经选好时间了。」'],
+ ['你们走出书店，沿着海边的石板路来到车站。停在六点的钟，第一次向前走了一格。\n\n阿遥把信交到你手中。「接下来的故事，由你决定。」\n\n【预设试玩结束】连接 AI 后，可根据你的行动继续写下去。','书架尽头传来纸张翻动的声音，一本空白的书自己翻开。第一页慢慢浮现出你刚才说过的话。\n\n【预设试玩结束】连接 AI 后，可根据你的行动继续写下去。']
+];
+async function advanceStory(text,choice){
+ if(storyBusy||!text.trim())return;
+ if(apiConfig.enabled&&!apiConfig.key){$('storyStatus').textContent='请在设置中重新填写密钥并保存。';go('settings');return}
+ if(!apiConfig.enabled&&story.demoStep>=demoScenes.length){$('storyStatus').textContent='本段预设试玩已结束，请连接 AI，或在剧本中重新开始。';return}
+ story.messages.push({mine:true,text:text.trim(),time:Date.now()});$('storyInput').value='';storySave();
+ if(!apiConfig.enabled){const step=Number(story.demoStep)||0;const scene=demoScenes[step][choice===1?1:0];story.messages.push({mine:false,text:scene,demo:true,time:Date.now()});story.demoStep=step+1;const ok=storySave();renderStory();if(ok)$('storyStatus').textContent='预设试玩 '+story.demoStep+'/3 · 不是 AI 回复；自由输入仅记录，随后播放固定片段。';return}
+ storyBusy=true;const button=$('storyForm').querySelector('button');button.disabled=true;$('storyInput').disabled=true;$('storyRestart').disabled=true;renderStory();$('storyMode').textContent='正在续写…';$('storyStatus').textContent='正在根据你的行动续写剧情…';
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
+ try{
+ const endpoint=apiConfig.base.endsWith('/chat/completions')?apiConfig.base:apiConfig.base+'/chat/completions';
+ const system='你是中文互动小说的叙事者，扮演场景中的角色，与用户共同推进虚构剧情。角色设定：'+story.config.persona+'\n世界背景：'+story.config.world+'\n以细腻但简洁的叙事回应用户行动，每次约150至350字。不要替用户决定行动、台词和内心。保持角色与世界设定一致，结尾留出用户行动空间。历史中标为预设试玩的文本仅为体验素材。';
+ const history=story.messages.slice(-40).map(m=>({role:m.mine?'user':'assistant',content:(m.demo?'【预设试玩】':'')+m.text}));
+ const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:system},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
+ if(!response.ok)throw new Error('HTTP '+response.status+'。'+({401:'请检查密钥。',403:'请检查权限。',404:'请检查地址和模型。',429:'请求过多或额度不足。'}[response.status]||'请检查服务商状态。'));
+ const data=await response.json(),reply=data?.choices?.[0]?.message?.content;if(typeof reply!=='string'||!reply.trim())throw new Error('接口没有返回文字。');
+ story.messages.push({mine:false,text:reply.trim(),time:Date.now()});if(storySave())$('storyStatus').textContent='剧情已续写并保存在本机。';
+ }catch(err){$('storyStatus').textContent='续写失败：'+(err.name==='AbortError'?'请求超时。':err instanceof TypeError?'网络或跨域错误，请检查设置。':err.message)+' 你的行动已保留，可点击重试。';}
+ finally{clearTimeout(timer);storyBusy=false;button.disabled=false;$('storyInput').disabled=false;$('storyRestart').disabled=false;renderStory();if(story.messages.at(-1)?.mine){const retry=el('button','','重试续写');retry.type='button';retry.addEventListener('click',()=>retryStory());$('storyChoices').append(retry)}}
+}
+function retryStory(){if(storyBusy||!story.messages.at(-1)?.mine)return;const last=story.messages.pop();advanceStory(last.text)}
+$('storyForm').addEventListener('submit',e=>{e.preventDefault();advanceStory($('storyInput').value)});
+$('apiForm').addEventListener('submit',()=>renderStory());$('disableApi').addEventListener('click',()=>renderStory());
+fillStoryConfig();renderStory();
