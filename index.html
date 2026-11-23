@@ -4,17 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=1">
-  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png?v=1">
-  <link rel="manifest" href="manifest.webmanifest?v=1">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=snowcat-20261124">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png?v=snowcat-20261124">
+  <link rel="manifest" href="manifest.webmanifest?v=snowcat-20261124">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="白日小手机">
   <title>小手机 · 白日</title>
   <link rel="stylesheet" href="style.css?v=20261123-comm1">
   <script src="app.js?v=20261123-comm1" defer></script>
+  <link rel="stylesheet" href="snowfall.css?v=1">
+  <script src="snowfall.js?v=1" defer></script>
+  <style>@keyframes sf-safety{to{visibility:hidden;pointer-events:none}}</style>
+  <noscript><style>#snowfall-splash{display:none!important}</style></noscript>
 </head>
 <body>
   <main class="phone" aria-label="小手机原型">
+<section id="snowfall-splash" aria-label="雪落机开屏动画" style="position:absolute;inset:0;z-index:1000;overflow:hidden;animation:sf-safety 15s step-end forwards"><div class="stage" id="sf-stage"><div class="veil" id="sf-veil"></div>
+<img class="sprite cat" id="sf-crouch" src="snowfall-assets/cat-crouch.png" alt="准备起跳的小猫" draggable="false">
+<img class="sprite cat" id="sf-leap" src="snowfall-assets/cat-leap.png" alt="跃动的小猫" draggable="false">
+<img class="sprite cat front" id="sf-front" src="snowfall-assets/cat-front.png" alt="正面靠近的小猫" draggable="false">
+<img class="sprite cat pat" id="sf-pat" src="snowfall-assets/cat-pat-reference.png" alt="拍屏参考动作" draggable="false">
+<img class="sprite paw" id="sf-paw" src="snowfall-assets/paw-print.png" alt="淡蓝紫色爪印" draggable="false">
+<img class="sprite decor" id="sf-star" src="snowfall-assets/star-outline.png" alt="" draggable="false">
+<img class="sprite decor" id="sf-sparkle" src="snowfall-assets/sparkle.png" alt="" draggable="false">
+<img class="sprite decor" id="sf-soft" src="snowfall-assets/soft-dot.png" alt="" draggable="false">
+<img class="sprite accent" id="sf-accent" src="snowfall-assets/accent-marks.png" alt="" draggable="false">
+<div class="flash" id="sf-flash"></div><div id="sf-particles" aria-hidden="true"></div>
+<h2 class="welcome" id="sf-welcome">欢迎进入雪落机<small>LET THE DAYDREAM BEGIN</small></h2>
+</div></section>
     <div class="status"><span id="clock">09:41</span><span>●●●  ▰</span></div>
     <section class="screen active" id="home">
       <div class="home-top"><p class="eyebrow">A LITTLE SPACE FOR YOU</p><h1 id="bigClock">09:41</h1><p id="homeDate"></p></div>
