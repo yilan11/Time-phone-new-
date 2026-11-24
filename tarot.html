@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>塔罗抽牌</title>
+<style>
+:root{
+  --bg:#edf0f4; --panel:#ffffff; --panel2:#f4f6fa; --ink:#3d4654; --sub:#8a94a6;
+  --line:#dde3ec; --accent:#7c8db0; --accent2:#a493c9; --accent-ink:#ffffff;
+  --card1:#e6ecf5; --card2:#c9d4e6; --card3:#cfc6e4; --gold:#b39d6b;
+  --shadow:0 8px 24px rgba(90,105,135,.14);
+}
+:root[data-theme="dark"]{
+  --bg:#13161c; --panel:#1d212a; --panel2:#232833; --ink:#e7ebf3; --sub:#8f99ab;
+  --line:#2d3342; --accent:#93a7cc; --accent2:#b7a6dd; --accent-ink:#14161c;
+  --card1:#2b3242; --card2:#39445c; --card3:#4a4266; --gold:#c9ae7a;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,var(--bg),var(--panel2));color:var(--ink);
+  font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;min-height:100dvh}
+main{max-width:540px;margin:auto;padding:16px 12px 28px}
+header{text-align:center;margin:6px 0 4px}
+header h1{font-size:22px;margin:0;letter-spacing:.35em;font-weight:600}
+header p{margin:6px 0 0;color:var(--sub);font-size:12px;letter-spacing:.15em}
+.daily{display:none;margin:12px auto 0;max-width:460px;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:9px 12px;font-size:13px;color:var(--sub);box-shadow:var(--shadow)}
+.daily b{color:var(--ink)}
+.daily button{float:right;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+  border-radius:8px;padding:4px 10px;font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow);margin-top:14px}
+label.q{display:block;font-size:12px;color:var(--sub);margin-bottom:6px;letter-spacing:.1em}
+#question{width:100%;padding:11px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:14px}
+.spreads{display:flex;gap:8px;margin:12px 0 4px;flex-wrap:wrap}
+.spread{flex:1;min-width:100px;border:1px solid var(--line);background:var(--panel2);color:var(--sub);
+  border-radius:12px;padding:9px 4px;font-size:13px;cursor:pointer}
+.spread.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.opts{display:flex;align-items:center;gap:14px;margin:10px 2px 0;font-size:13px;color:var(--sub)}
+.opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
+#drawBtn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;cursor:pointer;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));color:#fff;font-size:16px;letter-spacing:.3em;font-weight:600;
+  box-shadow:var(--shadow)}
+#drawBtn:disabled{opacity:.55}
+.stage{display:flex;gap:10px;justify-content:center;align-items:flex-start;margin-top:18px;min-height:40px;flex-wrap:nowrap}
+.slot{flex:0 1 150px;max-width:150px;text-align:center;position:relative}
+.unpick{position:absolute;top:-8px;right:-2px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#8a8f96;font-size:13px;line-height:1;cursor:pointer;z-index:3;box-shadow:0 2px 6px rgba(60,60,90,.15);padding:0}
+.slot .pos{font-size:12px;color:var(--sub);margin-top:8px;letter-spacing:.2em}
+.card3d{perspective:800px;width:100%;aspect-ratio:5/8}
+.inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.7,.3,1.2)}
+.card3d.flip .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;overflow:hidden}
+.back{background:linear-gradient(150deg,var(--card2),var(--card3));border:1px solid var(--line);color:#fff}
+.back .moon{font-size:34px;opacity:.9}
+.back .pat{font-size:11px;letter-spacing:.4em;margin-top:8px;opacity:.85}
+.back::after{content:"";position:absolute;inset:7px;border:1px solid rgba(255,255,255,.5);border-radius:8px}
+.front{background:linear-gradient(165deg,var(--card1),var(--card2) 55%,var(--card3));border:1px solid var(--gold);
+  transform:rotateY(180deg);color:var(--ink);text-align:center}
+.front::after{content:"";position:absolute;inset:6px;border:1px solid rgba(179,157,107,.45);border-radius:8px;pointer-events:none}
+.front .roman{font-size:11px;letter-spacing:.25em;color:var(--sub);margin-top:4px}
+.front .glyph{font-size:44px;line-height:1.15;margin:6px 0 2px}
+.front .glyph.bigchar{font-size:40px;font-family:"Songti SC","STSong",serif;border:1.5px solid var(--gold);border-radius:50%;
+  width:64px;height:64px;display:flex;align-items:center;justify-content:center}
+.front .cname{font-size:15px;font-weight:700;margin-top:4px}
+.front .ename{font-size:9px;color:var(--sub);letter-spacing:.08em;margin-top:2px;text-transform:uppercase}
+.front .orient{margin-top:7px;font-size:11px;padding:2px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--line);color:var(--sub)}
+.front .orient.rev{color:#b0655f;border-color:#d8a49f}
+.art.rev{transform:rotate(180deg)}
+.reading{display:none;margin-top:16px}
+.reading.show{display:block}
+.reading h3,.hist h3{font-size:14px;margin:0 0 10px;letter-spacing:.15em}
+.rrow{padding:9px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;font-size:13px;line-height:1.65}
+.rrow b{font-size:14px}
+.rrow .kw{color:var(--sub)}
+#aiBtn{width:100%;padding:11px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);
+  font-size:14px;cursor:pointer;margin-top:4px;letter-spacing:.15em}
+#aiBtn:disabled{opacity:.55}
+#aiOut{display:none;margin-top:10px;padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  font-size:14px;line-height:1.8;white-space:pre-wrap}
+.status{text-align:center;color:var(--sub);font-size:12px;min-height:18px;margin-top:10px}
+.hist{margin-top:16px}
+.hrow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;padding:9px 11px;margin-bottom:8px;color:var(--ink);font-size:13px;cursor:pointer}
+.hrow .hmeta{color:var(--sub);font-size:11px;white-space:nowrap}
+.hrow .hnames{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.clearBtn{border:0;background:transparent;color:var(--sub);font-size:12px;cursor:pointer;float:right}
+.empty{color:var(--sub);font-size:13px;text-align:center;padding:10px}
+.front.hasart{background:#ffffff;padding:6px}
+.front.hasart .art{width:100%;flex:1;display:flex;min-height:0}
+.artimg{width:100%;height:100%;object-fit:contain;border-radius:7px;display:block}
+.front.hasart .orient{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.9);z-index:2}
+.back.hasart{background:#101014;padding:0}
+.backimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.back{background:#ffffff;color:#2e3238;border-color:#d9d2c2}
+.back::after{border-color:rgba(0,0,0,.13)}
+.backsvg{width:74%;height:auto}
+#tableArea{position:relative;height:330px;background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px dashed var(--line);border-radius:14px;overflow:hidden}
+.tcard{position:absolute;width:52px;aspect-ratio:5/7.2;background:#fff;border:1px solid #d9d2c2;border-radius:7px;color:#2e3238;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:3px;box-shadow:0 2px 6px rgba(60,60,90,.13)}
+.tcard .backsvg{width:82%}
+#pickSlots{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.emptyslot{width:100%;aspect-ratio:5/8;border:1.5px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:12px;background:var(--panel2)}
+.pickhint{text-align:center;color:var(--sub);font-size:12px;margin-top:12px}
+.back{padding:0;background:#fff}
+.backimg{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+.tcard{padding:0;overflow:hidden}
+.callig{writing-mode:vertical-rl;font-family:"Kaiti SC","STKaiti","KaiTi","楷体","Songti SC",serif;font-weight:700;font-size:31px;letter-spacing:.14em;color:#2b2f36;line-height:1.25}
+.roman2{font-size:10px;color:var(--sub);letter-spacing:.18em;margin-top:8px}
+.verRow{display:flex;gap:8px;margin-bottom:10px}
+.verBtn{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--sub);border-radius:10px;padding:7px 4px;font-size:12px;cursor:pointer}
+.verBtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+#arcArea{display:none;position:relative;height:300px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px dashed var(--line);border-radius:14px;overflow:hidden;transition:height .5s}
+#arcArea.show{display:block}
+#arcArea.mini{height:84px}
+#arcFan{position:absolute;inset:0;transform-origin:50% 0;transition:transform .5s}
+#arcArea.mini #arcFan{transform:scale(.28)}
+.fcard{position:absolute;width:56px;height:80px;left:50%;top:26px;margin-left:-28px;background:#fff;border:1px solid #d9d2c2;border-radius:7px;padding:0;cursor:pointer;transform-origin:50% 330px;box-shadow:0 2px 6px rgba(60,60,90,.15);overflow:hidden}
+.fcard img{width:100%;height:100%;object-fit:contain;display:block}
+.fcard.taken{filter:brightness(.55)}
+.fcard .ord{position:absolute;top:2px;right:2px;width:17px;height:17px;border-radius:50%;background:#b39d6b;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;z-index:2}
+.front{background:#ffffff;justify-content:flex-end}
+.front::after{display:none}
+.front .art{width:100%;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:0 2px 2px}
+.romantab{margin-top:-10px;min-width:38px;height:22px;border:1.5px solid #c0aa72;border-top:none;border-radius:0 0 22px 22px;color:#8a6d3b;font-family:Georgia,"Times New Roman",serif;font-size:12.5px;font-weight:700;display:flex;align-items:flex-start;justify-content:center;padding:2px 9px 0;letter-spacing:.06em;background:#fff}
+.engname{font-family:"Apple Chancery","Snell Roundhand","Brush Script MT","Segoe Script","URW Chancery L",cursive;font-size:13px;line-height:1.3;color:#3a3f47;text-align:center;padding:0 6px 2px;letter-spacing:.02em;max-height:22%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.belowname{margin-top:8px;opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s}
+.slot.revealed .belowname{opacity:1;transform:none}
+.belowname .bn{font-size:15px;font-weight:700}
+.belowname .be{font-size:9px;color:var(--sub);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.slot .pos{margin-top:3px}
+.modes{display:flex;gap:8px;margin-top:12px}
+.modeBtn{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--sub);border-radius:12px;padding:9px 4px;font-size:13px;cursor:pointer}
+.modeBtn.active{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
+#fanArea{display:none;margin-top:14px}
+#fanArea.show{display:block}
+.fanbar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sub);margin-bottom:10px}
+.fanbar .sp{flex:1}
+.fanbar button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer}
+#revealBtn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+#revealBtn:disabled{opacity:.45}
+#fanGrid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;max-height:300px;overflow:auto;padding:2px}
+.minicard{position:relative;aspect-ratio:5/7;border-radius:7px;border:1px solid var(--line);cursor:pointer;background:linear-gradient(150deg,var(--card2),var(--card3));color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;padding:0}
+.minicard.sel{outline:2px solid var(--gold);outline-offset:1px}
+.minicard .ord{position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:50%;background:var(--gold);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.assist h3{font-size:14px;margin:0 0 6px;letter-spacing:.15em}
+.assist .tip{font-size:12px;color:var(--sub);line-height:1.6;margin:0 0 10px}
+.assist input[type=text],.assist textarea{width:100%;padding:10px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:13px;margin-bottom:8px}
+.assist textarea{height:64px;resize:vertical}
+.abtn{display:inline-block;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:11px;padding:9px 14px;font-size:13px;cursor:pointer;margin:0 6px 8px 0}
+.abtn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.abtn:disabled{opacity:.5}
+#imgPreview{display:none;width:100%;border-radius:12px;border:1px solid var(--line);margin:4px 0 10px}
+#assistStatus{font-size:12px;color:var(--sub);min-height:16px;line-height:1.6}
+.csrow{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 11px;font-size:13px;margin-bottom:7px}
+.csrow .n{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.csrow button{border:1px solid var(--line);background:var(--panel);color:var(--sub);border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer}
+.interpRow{display:flex;gap:8px;align-items:center;margin:2px 0 10px;flex-wrap:wrap}
+.interpRow select{flex:1;min-width:150px;padding:9px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:13px}
+#charBox{display:none;flex-direction:column;gap:8px;margin-top:8px}
+#charBox.show{display:flex}
+#charBox input{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);padding:9px 10px;font-size:13px}
+.charLine{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub)}
+.charLine button{border:1px solid var(--line);background:var(--panel2);color:var(--sub);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer}
+#ciRead{border:1px dashed var(--line);background:var(--panel2);color:var(--sub);border-radius:10px;padding:8px;font-size:12.5px;cursor:pointer;width:100%}
+#customInterp{display:none;width:100%;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+#customInterp.show{display:flex}
+#customInterp input{flex:1;min-width:120px;padding:9px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>塔 罗</h1>
+    <p>TAROT · 静心提问 · 抽一张牌看看</p>
+    <div class="daily" id="dailyBar"><span id="dailyText"></span><button id="dailyView">查看</button></div>
+  </header>
+
+  <section class="panel">
+    <label class="q" for="question">你想问的事（可不填）</label>
+    <input id="question" maxlength="60" placeholder="例如：最近这件事该怎么推进？">
+    <div class="spreads" id="spreads">
+      <button class="spread active" data-spread="single">单张指引</button>
+      <button class="spread" data-spread="time">三张 · 时间流</button>
+      <button class="spread" data-spread="situation">三张 · 情境</button>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="allowRev" checked> 允许逆位</label>
+      <label><input type="checkbox" id="majorOnly"> 只抽大阿尔卡那</label>
+    </div>
+    <div class="modes"><button class="modeBtn active" id="modeAuto">随机抽牌</button><button class="modeBtn" id="modePick">摊开自己选</button></div>
+    <button id="drawBtn">抽 牌</button>
+    <div class="modes" style="margin-top:8px"><button class="modeBtn active" id="flipAuto">自动翻牌</button><button class="modeBtn" id="flipManual">手动翻牌</button></div>
+    <div id="fanArea"><div class="fanbar"><span id="fanInfo">在桌面上点选你想要的牌</span><span class="sp"></span><button id="shuffleBtn">重新洗牌</button></div><div class="verRow"><button class="verBtn active" id="ver1">版本1 · 桌面平铺</button><button class="verBtn" id="ver2">版本2 · 横屏扇形</button><button class="verBtn" id="fanRedo" style="display:none;flex:0 1 auto">重新选牌</button></div><div id="tableArea"></div><div id="arcArea"><div id="arcFan"></div></div><div class="pickhint">选好的牌会排到下面 · 点一张翻一张 · 点错了点牌右上角 ✕ 退回桌面</div><div id="pickSlots"></div></div>
+    <div class="stage" id="stage"></div>
+    <div class="status" id="status"></div>
+
+    <div class="reading" id="reading">
+      <h3>牌 面 解 读</h3>
+      <div id="rows"></div>
+      <div class="interpRow"><select id="interpSel"><option value="standard">正经解读 · 塔罗师</option><option value="char">char 解读（读取小手机角色）</option><option value="custom">自定义角色解读</option></select></div>
+      <div id="charBox"><div class="charLine"><span id="charNameLine">当前角色：未读取</span><button id="charReload" type="button">重新读取</button></div><div class="modes" style="margin:2px 0"><button class="modeBtn active" id="charVerSerious" type="button">正经版</button><button class="modeBtn" id="charVerFun" type="button">不正经版</button></div><input id="charStyle" maxlength="40" placeholder="自定义风格（可留空）：填形容词，如 温柔、毒舌、悲观、护短"></div>
+      <div id="customInterp"><input id="ciName" maxlength="16" placeholder="角色名，如：毒舌闺蜜"><input id="ciPersona" maxlength="300" placeholder="人设/语气，如：嘴硬心软，说话直来直去"><button id="ciRead" type="button">📥 读取当前 char 填充（小手机数据）</button></div>
+      <button id="aiBtn">✦ 开始解读</button>
+      <div id="aiOut"></div>
+    </div>
+  </section>
+
+  <section class="panel assist">
+    <h3>AI 小助手 · 导入新牌阵</h3>
+    <p class="tip">看到喜欢的牌阵图？选图让 AI 识别它的名称和每个位置的含义，识别成功会自动加进上面的牌阵列表。识别不了也没关系，可以文字描述生成，或手动填写。</p>
+    <input type="file" id="imgInput" accept="image/*" hidden>
+    <button class="abtn" id="pickImgBtn">选择牌阵图片</button>
+    <button class="abtn primary" id="recognizeBtn" disabled>识别图片中的牌阵</button>
+    <img id="imgPreview" alt="牌阵图片预览">
+    <textarea id="descInput" placeholder="或用文字描述牌阵，例如：五张牌，分别是现状、过去的影响、未来的走向、建议、结果"></textarea>
+    <button class="abtn" id="genByTextBtn">用文字生成牌阵</button>
+    <input type="text" id="manualName" maxlength="20" placeholder="手动添加：牌阵名称">
+    <input type="text" id="manualPos" maxlength="120" placeholder="位置含义，用逗号分隔，如：过去，现在，未来">
+    <button class="abtn" id="manualAddBtn">手动添加牌阵</button>
+    <div id="assistStatus"></div>
+    <div id="customList"></div>
+  </section>
+
+  <section class="panel hist">
+    <h3>抽 牌 记 录 <button class="clearBtn" id="clearHist">清空</button></h3>
+    <div id="histList"><div class="empty">还没有记录</div></div>
+  </section>
+</main>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const RAIN = (typeof window!=="undefined" && window.rain) ? window.rain : null;
+
+/* ---------- 牌库：22 张大阿尔卡那（罗马数字 / 中文 / 英文 / 符号 / 正位 / 逆位） ---------- */
+const MAJOR=[
+["0","愚者","The Fool","✦","新开始、自由、冒险、天真","鲁莽、犹豫、冒失、逃避"],
+["I","魔术师","The Magician","∞","行动、资源、掌控、创造","操纵、才能未展、欺骗、迟疑"],
+["II","女祭司","The High Priestess","☽","直觉、潜意识、神秘、等待","忽视直觉、秘密、表面化、不安"],
+["III","皇后","The Empress","❀","丰盛、滋养、美、母性","依赖、停滞、过度付出、创造受阻"],
+["IV","皇帝","The Emperor","♜","秩序、权威、稳定、规划","控制欲、僵化、缺乏纪律、权威受挑战"],
+["V","教皇","The Hierophant","✚","传统、信念、导师、仪式","打破常规、教条、叛逆、虚伪"],
+["VI","恋人","The Lovers","♥","选择、结合、价值观、心动","失衡、错误选择、分离、诱惑"],
+["VII","战车","The Chariot","♞","前进、意志、胜利、掌控方向","失控、受阻、方向迷失、冲动"],
+["VIII","力量","Strength","♌","勇气、耐心、温柔而坚定、自控","自我怀疑、急躁、情绪失控、退缩"],
+["IX","隐者","The Hermit","◐","独处、内省、寻找答案、智慧","孤僻、逃避、迷茫、拒绝帮助"],
+["X","命运之轮","Wheel of Fortune","◎","转机、周期、运气、命运推动","阻滞、运气不佳、抗拒改变、反复"],
+["XI","正义","Justice","⚖","公平、真相、因果、决定","不公、逃避责任、偏见、纠纷"],
+["XII","倒吊人","The Hanged Man","▼","暂停、换个角度、放下、等待","拖延、无谓牺牲、僵局、抗拒"],
+["XIII","死神","Death","✝","结束、告别、转化、新生的入口","抗拒结束、停滞、拖延改变、恐惧"],
+["XIV","节制","Temperance","≋","平衡、调和、耐心、中庸","失衡、过度、急躁、冲突"],
+["XV","恶魔","The Devil","♠","欲望、束缚、执念、阴影面","挣脱、觉醒、戒断、释放"],
+["XVI","高塔","The Tower","⚡","突变、崩塌、真相冲击、重建","逃避灾难、延迟崩塌、恐惧改变、内在动荡"],
+["XVII","星星","The Star","★","希望、疗愈、灵感、平静","失望、信心不足、倦怠、迷失方向"],
+["XVIII","月亮","The Moon","☾","潜意识、梦境、不安、暧昧不明","真相浮现、焦虑缓解、自欺、困惑消散"],
+["XIX","太阳","The Sun","☀","快乐、成功、活力、坦率","短暂低落、过度乐观、好消息延迟、倦怠"],
+["XX","审判","Judgement","♫","觉醒、召唤、复盘、重生","自我怀疑、逃避召唤、旧事未了、迟疑"],
+["XXI","世界","The World","✧","完成、圆满、成就、新阶段","未完成、收尾拖延、只差一步、停滞"]
+];
+/* ---------- 小阿尔卡那：花色 × 阶位组合生成（初版为模板牌义，可再精修） ---------- */
+const SUITS=[
+ {cn:"权杖",en:"Wands",ch:"杖",flavor:"热情与行动",upTail:"动力正在聚集，适合主动推进",revTail:"热情受阻，先找回节奏"},
+ {cn:"圣杯",en:"Cups",ch:"杯",flavor:"情感与关系",upTail:"感受流动，适合坦诚交流",revTail:"情绪需要安顿，先照顾自己"},
+ {cn:"宝剑",en:"Swords",ch:"剑",flavor:"思考与沟通",upTail:"思路清晰，适合把话说清",revTail:"想法打结，先冷静再开口"},
+ {cn:"星币",en:"Pentacles",ch:"币",flavor:"现实与资源",upTail:"脚踏实地，适合积累与落实",revTail:"资源吃紧，先盘点再行动"}
+];
+const RANKS=[
+ ["王牌","Ace","新的开始、种子、潜力"],
+ ["二","Two","选择、平衡、合作"],
+ ["三","Three","成长、初步成果、协作"],
+ ["四","Four","稳定、休息、巩固"],
+ ["五","Five","冲突、挑战、损耗"],
+ ["六","Six","进展、和谐、援助"],
+ ["七","Seven","评估、坚持、策略"],
+ ["八","Eight","速度、变动、快速推进"],
+ ["九","Nine","接近完成、独立、再坚持一下"],
+ ["十","Ten","完成、结果、责任"],
+ ["侍从","Page","消息、学习、好奇心"],
+ ["骑士","Knight","行动、推进、追求"],
+ ["王后","Queen","内在的掌握、滋养、成熟"],
+ ["国王","King","掌控、权威、成就"]
+];
+function buildDeck(){
+  const RNUM={Ace:"I",Two:"II",Three:"III",Four:"IV",Five:"V",Six:"VI",Seven:"VII",Eight:"VIII",Nine:"IX",Ten:"X"};
+  const deck=MAJOR.map(m=>({key:"M"+m[0],roman:m[0],cn:m[1],en:m[2],glyph:m[3],big:false,up:m[4],rev:m[5],major:true}));
+  SUITS.forEach(s=>RANKS.forEach(r=>{
+    deck.push({key:s.en+r[1],roman:RNUM[r[1]]||"",cn:s.cn+r[0],en:r[1]+" of "+s.en,glyph:s.ch,big:true,major:false,
+      up:r[2]+"；"+s.flavor+"——"+s.upTail,
+      rev:"受阻或失衡："+r[2]+"难以推进；"+s.flavor+"——"+s.revTail});
+  }));
+  return deck;
+}
+const DECK=buildDeck();
+/* ---------- 黑猫简笔画牌图（已生成并内嵌的牌面，其余牌暂用符号牌面） ---------- */
+const BACKIMG="data:image/jpeg;base64,/9j/4QBMRXhpZgAATU0AKgAAAAgABAEAAAQAAAABAAABaQEBAAQAAAABAAABkgESAAMAAAABAAEAAIdpAAQAAAABAAAAPgAAAAAAAAAAAAD/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAQwAABtbnRyUkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAAHRyWFlaAAABZAAAABRnWFlaAAABeAAAABRiWFlaAAABjAAAABRyVFJDAAABoAAAAChnVFJDAAABoAAAAChiVFJDAAABoAAAACh3dHB0AAAByAAAABRjcHJ0AAAB3AAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAFgAAAAcAHMAUgBHAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhZWiAAAAAAAABvogAAOPUAAAOQWFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA+EAAC2z3BhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABYWVogAAAAAAAA9tYAAQAAAADTLW1sdWMAAAAAAAAAAQAAAAxlblVTAAAAIAAAABwARwBvAG8AZwBsAGUAIABJAG4AYwAuACAAMgAwADEANv/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAZIBaQMBIgACEQEDEQH/xAAeAAEAAgEFAQEAAAAAAAAAAAAACAkHAQIEBQYDCv/EAEIQAAEEAgEDAgQCCAQEAwkAAAEAAgMEBREGBxIhCDETIkFRFGEJFSMycYGRoUKx0fAWJFLBNUNiJTRVZXJzgrTh/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAH/xAAgEQEAAgECBwAAAAAAAAAAAAAAARFBcZEhMWGBwdHw/9oADAMBAAIRAxEAPwD9/CIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIuPYt16sUs9maOCGFvfLNM9sUUbR7ufI8ta1o+pJAH3WIOSdful/G/iMm5DHlLUZLTUwkTslISN7AliLag0QWndhpDvlIBB0GZ1oSPI2d/wJ1+fsoUZz1gU2yOZx/h9ixE3YZPlb8VZ7vbRNWpHaa0fcfi3ePHj3WP73q26gSl36vxHHKLXeAHV7dt7Ad+Q+S3G0lv07oyPu0/ULFWnx5I3v7hbNkH94734A0QSfb39vy1/RVjO9UvVsnxeww3/wDJKnn+G3j20fouVW9U/VVp3LPgJwCCWy4ZjRrzsbrzxHZ+u3HWhogE7CzEl+iflGvtv/MgD/f8lp/Hz/F2/P8ABoJVfNP1d8vgbrIcbwF7Xu6s+/RLvsT3T2h7/wDp19gslYH1f8StlkfIOP5jEOcQDPTfWytdvkAu7TJVsuaz3PbC9+tkNJQTB2Pbfke4+2/ZFjji/Vnp/wAwcyPBcoxdizIG9tKeb8Ffc52gGipb+DM95JADWNc4nY0B5WRQ4kEkeB9tknwD7a/NBuRbC/X5e+vz+x869/t9fod+FqHA/UD+uv6kBBuREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERARFhbqp1r410zgdUlc3KcjmiMlTCV5Wh4a5umTZCbyKdcuc0tJbJNKARFEQS9oZXymXxeFqS38tkKuNpQNc+W1cnjrwMDRs90khDdn6NG3uI+VpUQ+f+rLHUpLOM4DQGWssJibmr8U0WOB8tdLVqkwWbIadOjklMETvB7ZW7aYj886mct6hXTa5BkJHVmOJqYuFzo8fUb3bAjg7tSSAa7ppu+V3uCASF4RpIA86++wPy9vHt4Qe35Z1C5nzOVzuR5+/fjc90gptmMGPjJJ01lGBzK2mghoJje8hrS+R524+IA0NaAH2A0P6ef9+/lbidnZ+q0QEXIqVLV6zDTpV5rduzIyGvWrRPmnnlkcGsjiijDnyPcToNaPJUyOmXpYs2RBl+o8rqkPySw8coyATSA/NvK343ah86aa1QudrfxJmEmJoRDw/HM1yCy2ngsTkcvae4NEGPrPsyAuOgX9g7Y2EkD4kro4xo7d9pC8Z9KnUHKxsnztnE8Yik7Xfh7E34/INjIBHfBSc6CN+t7a+33MHa17Q8FosKwPGsHxmkzH4PFUcXVYGn4NKtDAHvDQ0ySmNjTLI4DTpJO5587J9z3YY0HYaAf4D+32/kgh7ifSBxZrGnNcqzd52vnZjoKWPjJP2dPHkH6Hke4J1vQXsIvSn0qiYG9vJJHAeXuzXa5x+pPw6jGjf2a0D8lJREEYL/AKTem1mINo3OS4ydrg4WI8jBad49h2Wqb2jR0QW9rhrw5d7hOmfUvhBibxjqZNncdCNDCczxwuVnRtIDK8N+pYjuVGdoA744yIw3taxzSQZBIg8fh83mHSNp8iwUmItP/ct0rDMph7TgdO+FahayzVdseG5CpUDthrHyOBC9UQP4EAAfVuj/AA8b8b9gPPt9V9dD3159/pv/AL/2WnY3z4Hze/j38a/yQfP5m+fp9x5H+/4r7LZ2a8tOj/X/AH/db0BERAREQEREBERAREQEREBERAREQEREBERAREQEREBERARFG7r/ANZm8Bxh4/gLEbuWZWu4iRhZI7C0n/IbsjDtosy/MynG8E9253MLI/mDg9c+vVfg7LHGOKzQWuWSRuZcslomr4FksR7Hvb5ZNkvLXxVnENgBZLYa5pbE+ue7duZC5ayN21PdvXJnT2LduR008srzt8kkjySXEk/k0HtY1rR2rZYsTWppbFiSSeexLJPPNNI6WaaeZ5fLNLJIXPkkkeS6R7nFznEknyvigIiIC7fA4HLcmytPCYOnLfyV+ZsVavEBsnRc+SRxGo68TGvlsSuIbHE1z9+PHVxxySyRxRRySyyuayOOJjpJJHucGtYxjGuc5znENa0AlziAAT4VnPQXpBF07w361ysTJOVZiFrrkh7HnHVXBr242u4AgBrg19qRjtzTANL3RxRtAc3pD0NwXTarFkLjYcvyyeJv4rKPjJhpFwBfVxcTyfgxNc4tfZIFiwADIWsDI2Z3REBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQFscCfAPaRog/Q6Pka/LQPt4/Jb18pPBDvqWuaDv235PgkDfgaP5kexQeD6k86x3TzimS5Dfe0vhj+DjqwPa+9kZd/hq0egC7fmSbt/cgjlfsaCqb5DnsjyXL3s7lZzZyGTsSW7UpHa0vk/dZGweI4oWajiib8sbAG+fJOaPUT1FfzXmMuLozl2A4w+XH1Q0gx3MiH9uQugNJa4At/DQyeP2LCQA6ZzVHweAB9kBERARFvijfNLHDGwvklkZHGxoJc98jgxjGgAkuc4hoA87IAHlBKr0wdNhyHPyczycZdjOOytbjont+SzmXjvZKSdh0VCHcrmgf+8S1nB37IsdYmvA9MOJQ8J4Px/j7IwyerRZJkHaHdLkrR/EX5Hu1tx/EPdGwn92GOKMaaxrW++QEREBFHD1Gdas56fcFhup1vjE3KOleKvil1SOGhlm5VxPE5GWvWx/NMdW+KIMph8Ncf2cixvw4rbcfZOSqWiaMlS1l3gPUDhnVDimH5vwHkeM5TxbO1hZxmYxNllirO0Htljd2nvgs15A6G1VnbHYrTNdFNGxw0g9koX+qDrVc6V9UvSLx+rlLVCn1H62zcbz9WvZkhgyOGt8Pz2IhgvwRkNt1K/IM7gb7YpQ+OO3TqWA34sMblNBfnw/S59Vncb9SvpVxUNljGdP8A8N1ItOa4F8Mt7m+MhgDgDtpNbik2iRoxyuHnyg/Qa0ggfwB8+/kbW5cSjOy1UrW4ztlqvDYbohw7Zo2yN0QBvQeBseFy0BF4nnvUbhHS/jV7l/UDkuK4txzHN3ZyeVtMrwukcSIqtZjv21y/ZeBHUoVI57lqUiKvDK/wuy4lyWDmHHMPyWtjM1h62apR5GrjuRUP1VmoKs5cazr+OMs0lKSxAI7La0722YYpo47cNeyJa8QekREQERcWS1DDYgrSO7ZLLZDADvUnwQHStDj472MIf2k9xYHOGw15aHKREQEREBERAREQEREBERAREQEREBERAREQEREBYh64c2/4D6f5fKV5THlLrf1Tie1wDhcvsfGZ2gne6sAlsbA2HRs9/ZZeVeXq05VJkuXYnikMp/B8fo/i7DA7bX5HJ9riX+SNwVYYAzei0yyDY2QgiZ3OcGl5Lna25zt9xJ2S529kuJOyT535PkIiICIiAst9C+PRck6o8VqWGh8FG8M1MwjuaRiWutwhzfAcx1tleNzSO1zXkOB8LEilb6Sca21zjN5FwBONwQa1xGyH3bkLfB+5bA7+QKCxIDQAH0WqIgIiIOszWHxnIcPlcDmqUGRw+ax9zF5TH2o2y1ruPv15KturYjPiSGxBLJHIw77mvcD7r8wvPc/1p/RP+pW/jOD2rvIuh/OLcnJcJxXNT2Rx3kODlm1exsU7XPjxfLONlzcc7J12meeBuPt3obcFhtZv6jVEP1r+l3Deqzolm+DyNq0+ZYgS8g6eZ2eJrnYrlFWvI2GvLKGmWPGZqMnGZVsZ18GSOyWSSVImoPQ+mb1ZdJPVNwyPk/T7MhmWpwwjlHDMh+y5Nxe5JoOhvUgN2KT3HdTLUvj460wjsnbM2WGL8zP6Vfl7+V+tTqHBHL3w8QxHEeH1QHdza76WDgyNtrR3do+Hkc1cfpoaQ9wDu4t8w/4lzzqt6a+qT8txXKZbgnUjgeZuYnJQ+Y5IbVOd9XJ4XL0pQa9/HzujMVuhZZLVsxtY/R0x46rql1J5B1f6i8y6mcqdRbyHmmbtZnKfq+GSvRFmcRtkFOCaaxJDWDYWNrxumkcyNrWue5wLiH7WPSxzZnUT04dEubCb4zs90y4jasyl3cXX4cNVqZMud9D+sK1nuHu0gg7I2Yxerr9JH0a9MrLfGcTPB1L6puilZFxDBXInY7Bz9mon8vzkRkgxfc793GwCxlZQNOr1onNsL8++O/SHdcuH+m7hnpw6d328IxvG6Wax+W5hjJ5JeVZihlczkcpXx+PuOEbeO0atS82i91Ey5Kcsf23KkH7A/P0FejnkXq86s/iM426zpZxO7WyXUnkMk07JsibMklmHjGOtECSbM518cj7czJd4+g6a/NK2xLUinC0z0XdN+tHrf6iU/Vh6qr1vI9OuJ5Sa10a6buZJQ4dYzsT+x2eo4B0j2y4TAPjbDUt33TX8xmIPiWbFmjUdHZvXZGGEaJJDGt8/UD6/be9+3ttdTxzjuE4lgcPxjjeMqYbAYDHVMViMXQhZWp0MfShbBWq14Iw1kccUTGta1oH38kkrukBERAXgepVmbF8Ws8iqwuntcWsVuQxRsOnSQUJD+soQQQP+ZxUt6uA7bNyhzgC0Ee+XWZqg3K4fK4x4BZkMddpOBHcCLVeSEjWvPh/tryg+mLyFbK46lkqcgmqXqsFutI07D4bETZYz4A89rtHQHkEa8LnqN/pi5U7OdPRhbT3PyPFMhPipmvduX8FL/wA1Qe/Xg9rJJqwDQA0VtaB8KSCAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIg2vcGNe8+zGlx868NBJ/h7Hyqdeoufk5Rzfk2ce/vbey1t0B3sCrFIYKjR5IAFaOLetDu2QBtWw86yX6n4ZynKB3YaOCydgPG9tLKkvaRrztpII/NU1lznEucSXOO3H3JcT5P9TspnfXH09hoiIgIiICmZ6O2tOX5u8n5mY/CAD/ANLrORLjv8i1nj67/JQzUt/SHfjh5dyfHOIDr2AhnjcSfejfjDhr822yfbx2/mgsJREQfKeaOtDNZmd2QwQyTSv7XOLY4mOke7tYHOdpoJ7WtLjrTQ4nSgx1I/SR+knpbNYp8m57mDk65DXYuhwjl77jnlod2tdew9CmCAR5ktsb5HzHanYulzfHMBySq+hyLCYjO0ZBp9LMY2nk6rwfcOr3YZ4nA/UFmj9doKZ+bfpueiWLMsfAOlnUXlzu1wguZ2xx/iePle1x+Zv4e7yG6+N2x5dUgeNeW7Kily39OD1hu/GZwzo/08wETg4RTZ3L57kc7AdgFzK36ihLxv7Fu/djgCDdnyr0O+knmgnOd6B9OnS2e4y2cXgoOP2yXe7hYwP6tla/7O7u4ewIHhQ76t/onfQ3T49neWXXc16T4fB467l8rmcLzSaXG46jShdPNLPFyqlyKERsawBsTHMmnOoYSZHtAD813XXrXyj1B9R8z1R5ri+L4/k2eZUbk3cVxDcLQtyUqzKkNmas2aczXXV44o7NyaR89n4MZme5zGEYgHjWifH1+q9hzyrwqnzDktXp3czuR4TVy9utxm/yMUG5u9ioJDFWuZGLHQ16sU9sNNgQQwNMUcjI3l72Pkd49BqSSdn7a/orMPTV+k46remfp7iOm/Fem3SnI8axL5pXOkxWZxedzFu1I6azks1mKWXdFeyMzi1hsy44lsDIa8YZFAxirPA2QPzG/wCH13+X3X6DPR5+jR9IfXnpLxLq07qB1O5m3MVvg53j8OUwXHoOP8hqNZHl+O5CCjiLWTa6paIkilblIfxdGSpchLorLCQ7Thv6c3FSmOLqB0DyNXy1stjhnMaWQeAdB0jKGdxmJae3ZcI3ZNvgD9od9qlxwf8AS9ej3ls0FTKZnnfC7s+g2vyThV221r3eO38TxSfkURO9t2AG71o698rcU/Rt+jDigrmt0RweYlgA7Z+U5HOcke9w9nvhyuSsVCfu1tZrDsnt8qUfD+jXSTgTI2cK6Z8D4r8ENbG/BcUwmNmaB7AWKtKKwdaGu6U686Hk7DldOOqnBurOGfn+BZeXNYlj2RvtS4rL4nT5WfEYGw5ihQnkBb7ujjcxpBa5wcO1ZEW1rWt7i1oBcduIABcQNDf8AABs+AAPotyAiLg5K6zHY+7kJC0R0qti1I537rY68T5XucRs9rWsJPuQN+NoIEel/PGl1R5XgXHthzVbIyRsOgPxeKuySt7de7hVmsbH0aPt7WCqo/o5mn43qzxDLOeGm1mRXncCe14y/wAanLs72d/im6JJ8a7t+xtuaSdk+2m6+3t50g3IiICIiAiIgIiICIiAiIgIiICIiAiIgIi0Psf4FBiXrtaFTpJzeQu134qOuNeCTbv06oH8CZtH7gkKppWo+oslvR/mLg0uArYvYb7/APj+KB/LTQSXfkD7aVVu/JH21/dTMXzqdMX4GqIioIiICzT6fc+MD1V42ZJBHBlX2MNM4n/FkIXMqNIHuHXW12/x19QsLLk07dihbq36r/h2qNmvbrSbO47FaRs0Dx7H5JY2HfuNDSC7ZvsPsdEfXQ0Pr/Vary3CuSVOX8TwPJKUjZIctjoLLu3R+HZA7LcDgP3X17bJoJGe7Xxlv02vUoCIiDa5zWNL3uaxrQS5ziGtaB7kuJAAH1JOl+Y39Kh65LPVrk1r05dJMk67wDj+Vjqcwy2Gc+wOa8rqWhHFh6M9VzzawuHvM+F2V/iRZfKsjlYZYKlcy2uesnqf1e54+z6XvSxQlyfUnk1aOv1M53FI+tx/pDxLJMb8mWzga6vR5LyCq+RtTHwNs5etiXSX4abJbOPnbx/SL+jZ6P8ApnbV5TnmQ9T+q7o2Sz8vztKN2Owdhw3NDxTCSmaCgA5zgMra/FZiYD5bNSN5rgKl/Rx+iS511Q/VXP8A1B/rLp1wOaGO9S4hC0V+b8mglLTB+OEncOLUJGAPkFuJ2ZmjLWw1KTJPxQr69W/THD9HfUj1f6ccfonHYDjXML1fAUXSTWPwuEtxQZHFVxPYknnnEdK3CwSzyySv1t7+4lfuM/ID28a1of5e38F+TD9LvwSfjvrKymQr13Rs6kcF4dySi4An8RdiZd4pcLf/AFfHwUZ1529+z5cSQ47/ANGT1G5f6Uul/qJ6UTWuUch5Bxq/yHl/Th0LBk3405XJuxOW4jJGQ7IyS4OKnJZwUrTdne5s+NksSzGkzr/0bXq2yHpe6yf8E83tTUelfUa/BheXQZF0laLifIIJXU8bygiYMFP8FKDQz/xQxrsbJ8WYiTHwFn6leivEoOAdH+lvB4ImxM4r094hgHtj23cuMwNCpO8DTXNdLNHJKfYlz3b8jagJ64v0a/BfUnWyHPenTaHA+s0NZ73ZCOJtbjvNXMBLa3Ka1aJzosk4ARwcjqxvtNHZHkYb0LWfBC0WOWKaOOWB7JopGNkimic18crHtD2SRyMJa+N7SHNcxxa5rgQdaX2YCN7BHt7/AM1Vj+jm6785GOyfpN6/4rJcY62dGsdEzEw5t4+PyzgEMv4XH5CnY+JJHlH4XcdJ1ynNYr3cU/G2mTySC38O1FAREQFiXrjnv+Hul3L7rZRFNNipMdXd8vcZ8o9uPYGBxG3ds8jiB57Gvd7NJGWlBf1e8zaXYHhFWUO7T+v8mxpBIka2aljo368t02a3N2EkO3E/QLGOQQ+4pMavJuOWAdfh83iZRrxoRXoH+Ne37v339fzV0zTsMI+rNj+Yb/D/ALfyVKGA/wDG8Nv/AOKY/wD/AGolddH+5H/9sf5NQfRERAREQEREBERAREQEREBERAREQEREBERBijrdQdf6T84rtaXuZhZbLWjW9U54Ljid+PlbA4k+2gSqldae8D7jWvOx7ePuFdFyrHjLcZ5BjC3uGQwuSp9p/wARs05ogPp7lwVLxY6OR7HAtc1xYWnwWuYe1zSD5Ba7wQfO1K430mN69AiIqCIiAiIgml6UOokVSxe6eZSy5jLb5Mnx74pHwRZPb+Px8Z92vmAFyFp+Vzm2gD3FjTO5UmY7I3cTdq5LHWJad6lPHYq2YXFssM0Tg6N7HDyC0jY1/P28WtdIOp9DqZxiC+JIIc7TbHXzuOY8B9e52a+PHE5xf+Dt9rpK8g2zuEsHcZIX7DLKIiDgUMXjsX+M/V1ClROQvT5O+adaGqbuQsNjZPftmGNhs3JmQwxy2ZjJO9kUTXSObGwDnoiAqPf0qPShvM/UJ6JslHWMz+Uc4j6dXy1u3Pq/8VcbzEERcfl8wW8yQDsAOeda2rwlgPrD0bZ1O5r0B5O/8D8Lo/1Osc8tNt/EM89Y8M5Nha8FFrYZI3WW5rI4a4RNJA1sVOSVj3TRRMeGdIoGxsbG3wxkbI2tGtAMHb9B9AANe2gF9ewfn4+h1o/kfHstWN0D7+SXed+O4715P03r+3geFuQYp570a4T1Cz3EOXZWraxnNeB5OLI8S5rgJo8dybDtMgORxUd90FmO1gc5VM+PzWGyFe1QuVbMzhDFbbXtQ5VGwACdkAbP3P3WqICIhIAJJ0B5JPsB9yg6XkOex3GMLks9l7DKuPxVSa5alcQD8OJhIZG0+XzSv7YoIm7dJK9rB5Pinvm/KLfNeVZrk10ObJlLhmjhL3OFatExkFWu0uJ7RFXija4DTS/udrypHepTq/HyjIP4Px6y2XBYiz3Za5XlD4sllIXENgjc35ZK1Eg/MCWy2SSC5kcb3RJPcTst8/kPH+SD0/CKrrvMuK02gE2uQ4aHR9tPyNcO/oN/x1rztXNxnw0eflbo/wBtfX8tKpzoHiDmOq/E4ewvjp3JcnKdbDG4+tNaY8/XXxmRNB8gFw8a2rY4/r/L/ug+iIiAiIgIiICIiAiIgIiICIiAiIgIiICIiDa8dzHDW9j2PsfyP337a+vsVUP1c463i3UfleHjaWQDJy36bTtx/B5Q/joNHXs0TOjIHgOYW/Qbt6UDPVvw4w5HB81rRuLLVc4PIlrD2skrOksUZXOA95WTWIiXEACKFrfLighkiIgIiICIiAvZcF5zm+n+er57BzfDmZqO3XcCa+QplwMlK2zYD4n67mO/fhl1LGQ9q8aiC3rpt1L4/wBSsKzI4icR3II4m5TFTOb+Mx1h7TtkjR4kge5r/wAPZZuOZrXA9kjJI25GVLXH+RZvi2UgzGAyNnGX67tsnrSFhezuBdDMzfZPC8DUkMjXxvHu3x4n50x9TfH+StrYjmPweO5wtZEy67u/U+Rl327E/n9Xyv8AH7OzuFzieyduxGAlSi+MNiGzGyaCWOaKRofHJE9skb2uGw5j2FzHtI8hzHOB37r7ICIiAiIgIi8ly7m/GeE4+TIciy1bHxsa50cLnfEt2XAbEVWnGH2LEj/DQImEAnbnMaC4B61Qn69+oGKKG5wvgt0STytlq5vP1y18UDPLJKOLlB1LNL80di4xzo4BpkW5S90eLOqvqN5Bzj8RhuMR2eOcceHR2JHPDcplIyCztmlhdurWeASa0Uhc9ri2d5B7VGvwB7Ak+587B39POgPyHjRQbA0BxcCfm8kHyQ4nyXOP7znEbJO978ne1uREEwPSDx50/IOUcnfH3R47Hw4iCXRLfxGQkZYna0kfvthrxFx8abKQPDip+sGvr+8AR/v+awd6fOJjifTbEiav8C/nS/PZCNwAka6+GtqsePDgY6Udduj52Xg+Qs5N35Otb+n8ANf9971/JBuREQEREBERAREQEREBERAREQEREBERAREQFj/qdw2HnfC81x54YLFms6XHzO8fAyNf9tSk39GGZrYph4L4XvZsd2xkBaEAjR8goKSblSzQt2KV2J0FupNJBZhdvujmieWSRu8eHNcCDsfQrjKWXqj6aSYTNs55iq7zis69sWYZCwmOnl2gNbZcGjUcV+FjSddrTYY9z/2k4LomggjYOx77Hka++0BERAREQEREBPOiPo4aOvqCfYjz9h/n4REHv+HdUOd8Ee0cd5Fdhphwc/FXHuvYp+jshtKw5zICT+9JWMMjvHc8gDUouL+r9vYyDmHFSJAAHZDA2ttkIGu5+OugOjJPk9l+QfZuvCg8iC0PFepbpRkyxsmXu4t7xsjI4u41jN+wdLVZZi39wH+PY/l62HrV0pnG2c84+PG/21s1z/SeOI7/AC1v8lUeiC1+9176T0WSPfzLGWDG8tLKbbtx7tf4mfhakrXg/QtcWn/q0vA5r1YdOMex/wCq62dzkwH7NsFNlKFz/o18tyWOSNn3eIH6/wClVvIgk/yv1Vc7zRkgwFSjxeo4OaJYi+9ki0k6d8ebVeB4B/8ALruIOiJNfKI45bL5XO3Zsjmcjdyl+dxdLbvWJbM7yT9ZJXOcAP8AC0aa3QDQ0Aa65EGuz9z/AFK0REBZJ6S8In59zrCYT4Lpccyy29m36IZHiqn7Sw1zxoMNlwZVZ7lxmIa06JGNvf2VmPpt6bycL4ic1lK4hzvJxHakY8bmp4tu3UqriWhzXzNItTs9g50bXbdH4CRMFeKtDFXhaGRQxRwxtH+GOJoYwD7drQANey+oGgAtUQEREBERAREQEREBERAREQEREBERARFpsb1sb+2/P9P5H+iDVERBxLd+nRdUbbsMgN63HRqB+/29uZsj4oGaB/aPZFI5u9DTXbPsuWo49eeTHj+T6Txl7msk6gUb8oDyCYqcbq5L9fvMLshotI0QS06BJUjGnwB76DfP32PdB5/lPHcdyzBZPj+WhbNRylSWrKC3bmFwJjlYT7SRSdssTh7PYNfVVJ8+4LlunfJr3HMo18jYnukx97sLYcjQe534e3CSXDbmt7Zou5z4JmujeSA17rjtA+42sS9W+leK6n4A0rDhUzGPEs+EybWAvq2XM0YJhvclOyQGzxj935ZGDvYNhUyi7nkHHszxXL3MFn6L6GUoymOxXkBLHNOzFYryD5Z6thunwTMPa9u/Zwc0dMgIiICIiAiIgIiICIiAiIgIi0d7eG7dsEO3rQ+o19d/ZBqiHsaA4kDY3p3uCD5Gh5Hk72dD6b2NLKvSfpXmOp2dZWrsdXwlOaJ2YyRZ+zggc4F8URI0+3MzuEUQ8t33u7WtcUGQvTt0jfzbNDlGarPHGcDaidGyVmosvkoiZG1o9kukr1C2OS2QOxxfHCHlxla2ycNDWta1oaGt00AaDQAAAPGgAPA8e3sF1OAwOM4ziKODw9WOnjsdAyCvBGAAGtHzPdrXdJI4uklkd80kjnPd5K7hAREQEREBERAREQEREBERAREQEREBERAWPOo2Hz93ENy/ErslLlHHy+/i2dznU8m1rWm1iMjX7hHPVvwtMbS8F8FhsFiHUkYKyGmv9/5/yKDCfSzrTguocJxtofqXl1MPZkcDYLmyGSA9s8tJ8gBmiDmu74ifxMBa8TM7Q2R+awQfZQK9S3Tm9xnN1uqPFZJqAsW4zlX0nOhloZXvaIMix8WnRsukASPAAZZYe8kzMXsOjfqSr5s1OMc8mgpZkhsFLOhvwaWTd/5cV3b3MqXXN+X4gDa9hzRr4Mz2scHhPVxniOX8OoRPcw4nGSZJ7fo2xcvlsLyAe7YZjmnuLdBjwR3AkCdOBvNyeGxOSYS5mRxlC8wnRJjtVIJ2k9u29xEu3AOIB8AkeVWD6jMuMv1Zz5EjZocdBjMbCWPEkbYq+Pjmc4SAlrhJZnk2APcH6+RODo7y/GVujHEszm8jWx9THYl9C1btzdkTDi55ajYwXbc6R0UUYZG3ukkJDYmucdIM7LFHN+rOC4teq8bx0UnJea5SVtXF8bxr2uk+PJstkydr5o8dVja10sr5A+XsYe2LtDpGRY6q+qS9lPxGC6dtnx1QymKTkT2ayFpoJYW46E94qwzb2J3tFogx9n4d/c12X+gPSKTilH/jHk7ZLPLc1EZmNtkyz4mrZaHSNLngvF603RtSFxkazUOwfi9wep6g9IIOpnGqkfIpqVXmdOF8lXOY2o6OGvNK58hxssbpHzWsYwObB3SyCUmMW2CKR72Ord5dw3kXBstLhuSUH0rTO4xSgmSpchadCxTsdrWzRP8ADvAY9m+17WkEK5BeU5fwnjXOcW7E8kx0d2v5dBMD8O1Tm0WtnqWG6fFI0EjwSxwLmva5pLSFOSKQvU3088s4Q6xk8PFLyPjjS+T8TUi3kaEI8gX6URe5waP3rNYOhI+ZzIPLGx7ILSQQQQSCCCCCPcEH2I+oQaIiICIiAiIgIiICIiAtdjQGvIPv+X9v9/VcmnSu5GzDTx9O1ftzvbHDUpwvsWZZHHQZFFE17nu+pGgAPLiG/MpldLfS3ZlkpZzqLuCEani4zBMPjSg6LWZaeElsTdaL6sEznHfw5nN+aNBg7pP0U5D1MtsnPxcZxqGV5uZiVvaJnMcWuq47uafxUzTv4hjIii7dSysfpps74rxXB8NwtTA4ClHSoVGABrfmlnkI/aWLErvnmnldtz5HknzpumgNHa4/HUsVTgx+OqwUqVWNsVerVibDBBE0abHFGwNaxrQPAAH3+q5qAiIgIiICIiAiIgIiICIiAiIgIiICIiAtriRoA639fsB+Wjvft9P4rcvnJ39jjGGuf2nsa8ljS/Xy9z2hzmt3ruIa463ppPhBpo/M7Z8gAE61/IHwP+/vra0AI93/AJD5wNfyDT/n/JYc5PkOutUSf8Oca4Hfi274ROdyUl0t2S0vivUsPWa8gAEC45o3ru8AqNvKuWeqlnxWy4jJYyIF3cOP4LHXI2jyPltQuyc+vbRZNs+/cfdBOHM4jG5/E5DC5aGKzj8lVlq3IJB8skUrS0lu3fK9hAkjcACyRrHjRG1Uh1I4Pb4FyzJ8fsPEteCX4uOuMIcy3j5vnqydw+UStjIinYD3MlY9pDSAt+f5d1JnldByXPcthlJcHVcjPkaXaR5LRA8wsa3ZILWs1oEEFeEsPmkljfLPLM5+y74rnPJ2PJL3Ekkk+dn6oN8k9mZ7nzSOsPeW7kmeZXuLRpvc95LiAAAzbiGgADwAudLmcrYxtbDy3rj8XTnmsVaEtuaShWnsaM81em9zoYZZiAZJImAvPk7IBHXdoJ8fL+Y2P9f+6AEH33/EH/UFBLn01dH4szcj5/yKESY7Hyk8ex8zA5t67C7T8jNG4EPrU5AG12lun2GmUuAiZ8Sf48AeADr2B9vpr6ePp7Klihms3jpG/qnJ5OjICNChfsVnkk67eytICd6HjXnxr6FZu4xzD1GkwO47Z5nkIWhvay5jJcnTc3fgGTI0p4gzx5HxWA/dBZ0vq0DtHgfX6fmVE3i3JfVBZ7G5Lh/HHwt0X2MtJXxEjgd+Syndkdo618lMOB18ulI3jFnlM9V55XSwdG2C0RsweRtZCE7Li4SutUqbonNHZoNMzSS7bhobD0jowQQNefoRsEH3H8Nff+e1gznnp94Hzh890U3cezEve45LDMihbLM/X7S3RLRWtbcNyOAjnf51PG5znuzuiCsTl3pn6kcbdPNjKsHKsexxMU2HDhkCzzoyYuUmQvI8ltaWyN+AfbuwHdpXMbO+rkalnH2Y3dkle7BLVnY8e7Hwzsjka4f9Lmg/krt9DWvprX8l0mW43x/PRGvmsLi8rCQQWZCjXtDz58GZj3N9zrRBH0I8bClo+Pfx/HwitDzvpq6UZp7pY8JZxEzg758RkrVaNpd7EVZHWKvy/QCFo9ge4DQx1d9H3GXuJx3K83VZ9GWa1G1r7DvZHX2B9dt277hBAEOjaNOIJ8Dzoew0f8Xn6J2guBBf/wDh5G/uddw9x77AJ3/Azhd6N4yfHPZQPt+oW/T2/dybR/ZfaL0cVAf23OrLh7fs8JEx2t+dF95/9SCggy9zdBrnDX2d2j+vnz9/I9j9tLbsf235BHj235/Mqw2h6ROFwj/2jyDkN8+N/CfUptPsT4ZBKfuPLv8AVZS4/wBBOlXHhG+DilPIWY+3/m8w+fJyuLdacY7cslZpJHcRHAxu/IA8IKwcDxTkfJ521uP4XIZSV7msBqVpZYmuJ7dyTaEMTWny98kjGMGy9zWjakzwz0ncmyLo5+Z5KvgaoPc+jR+HfyMje7YYbAP4SDx7uabBABGvIJn7Uo0qELa9GpWpwMHayGrBFXiaANabHExjWjXjQAXKQY/4R0w4b0/rmLjuIghsvjZHYyU7Wz5GyGnuAlsvb3hgd8wiYWxtcdhoPk5A1/fyiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgLa7Wt62fpsffXtv8Al7fX81uXX5bJUsPjbuUyNiOpRoV5bVqxIQGRQQtL5HnwdkAeABtztNHkoPE9R+Vcb4Xxm9neRV6tqCNvwq2PmiimkyduQERU42TNeHB58zPcCyKFr5JCGjzUzyHNScjz2QzL6tWrJkbckwqY+tHXqwNe4GKCvXgjY1jIYmsjBAL5A0vkc6Rz3OztzXN819Q/Nhj+MY+1Lg8bJJFjK0n7OpRqvcGvyWQnIEMNi41rXSjuc4MZHXYZfhNc6U3Sz07cY4O2plc4K/IOSxFkzbE0bTRx8wG/+ShkB7pGbIFiQB58lrGA6QVpyxS15ZYJ4pYJoXmOWGeKSGWN492ujlax4I+oLfy918j7+DrXkHf2/wBPG/I9z9tLM3qHxYxXVvlbewdl99LJw6/d7bdCGRzmAaHmdkwfoHbwSfPkyY4h0N41zforw+HIxDGcglxc+RoZyvDH+Li/WVqe3BFbG43XqzmPiJhlkDo29xrSROe9zg7X01cn41yTjYxL8NgqPKMAxkVqSrjaNaxk6Oy2vkXPjiE0k3tBbf3bMrRKSPiACVDdE617/fz7b+g14P2/qqpn4/mvQDnuMv36k0bqk5fDPE55xecxznBtmBk7AGPjniPY9jwZqspY90YfEN2dcY5FjuWYLGchxEvxaOUrMsQn3fE4/LNXk8DU0EodDK0gfOw6GkHoizev/wC617+2/v8AbWtlbgNe38/f3/qf6f3QHYBI1+Xt/n5WqAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAsIc/4Vnup+TZgMjalwPAcbLDLebVlH6z5XZLWyiEOaDFTxNXwO8vlsz2jv8NGIY5Rm9fAglzfLQBvXaT51vYcPYNGzv77CDouOcVwXE8bBiOPYypjKMDA1sVeMNfI5oAMtiXXxJ5nHRfJK57ne2wAAO/7D9x/f/Rbmnu2TsnQB2NDyBvQP5+/j8vuju76Hx/L/AE/1KCvj1a4J0fNuMZCJh7sxgnUw4AkS2qF2Voadf4mxXYgPBOngfTYnXxzGMxPHsDi4w1jMZhsbQDR4H/K1IYN+w9zGT5AKwJ6heN/r7J9KHhndrnFPHPIG/wBleMc72n38ObSJ8e+t/TzJYNGg3yOxrW+Na1rx9EHmuT8QwHMcXYw/IaMOQoWGu7437+JE/RDJ60zdS15ot/JJC9rvcEkOIOBuB4HO9DuQzcdu2bOX6Zcgsh2IzEjQX8czMr2RxVcqGhrYIMgOyH8VHuo+yInlteSWVjpQgdoOvf8AP6lcaaKGZskc0bZmPBD43tD2HXlzXMeC1w38w7h27DSG/LtByGuDt6+i3L5sGta0NtB0BsewA24aBOh4/nrwt/n7j+h/1QaoiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgJoD2GkRA0B7DSIiDqMph6OWkxb7kPxTicnBlaZ3r4VytHNFFKP/pZYlHjXgnz7A9q0e5P1J/oPb/f2W5EBaaHnx77/v7rVEGgAHt+Q/p7LVEQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQf/2Q==";
+
+/* ---------- 牌阵 ---------- */
+const SPREADS={
+  single:{name:"单张指引",positions:["今日指引"]},
+  time:{name:"三张 · 时间流",positions:["过去","现在","未来"]},
+  situation:{name:"三张 · 情境",positions:["现状","阻碍","建议"]}
+};
+let curSpread="single", lastDraw=null, aiBusy=false;
+let customSpreads=[];
+function getSpread(k){ if(SPREADS[k]) return SPREADS[k]; const c=customSpreads.find(x=>x.id===k); return c||SPREADS.single; }
+let pickMode=false, fanDeck=[], pickedIdx=[];
+
+/* ---------- 存储：优先 rain.storage，失败回退 localStorage ---------- */
+const store={
+  async get(k){ try{ if(RAIN&&RAIN.storage&&RAIN.storage.get){const v=await RAIN.storage.get(k); if(v!==null&&v!==undefined) return v;} }catch(e){}
+    try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  async set(k,v){ try{ if(RAIN&&RAIN.storage&&RAIN.storage.set){ await RAIN.storage.set(k,v); return; } }catch(e){}
+    try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+};
+function toast(msg){ try{ if(RAIN&&RAIN.toast){ RAIN.toast(msg); return; } }catch(e){} $("status").textContent=msg; }
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+/* ---------- 主题 ---------- */
+function applyTheme(t){ document.documentElement.setAttribute("data-theme", t==="dark"?"dark":"light"); }
+try{ if(RAIN&&RAIN.theme) applyTheme(RAIN.theme()); if(RAIN&&RAIN.onTheme) RAIN.onTheme(applyTheme); }catch(e){}
+
+/* ---------- 抽牌 ---------- */
+function pickCards(){
+  let pool = $("majorOnly").checked ? DECK.filter(c=>c.major) : DECK.slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const n=getSpread(curSpread).positions.length, allowRev=$("allowRev").checked;
+  return pool.slice(0,n).map((card,i)=>({card, pos:getSpread(curSpread).positions[i], rev: allowRev && Math.random()<0.3}));
+}
+const BACKSVG=`<img class="backimg" src="${BACKIMG}" alt="">`;
+function cardHTML(d){
+  const c=d.card;
+  return `<div class="slot"><div class="card3d"><div class="inner">
+    <div class="face back">${BACKSVG}</div>
+    <div class="face front"><div class="art ${d.rev?"rev":""}">${c.roman?`<div class="romantab">${c.roman}</div>`:"<div></div>"}<div class="engname">${c.en}</div></div></div>
+  </div></div><div class="belowname"><div class="bn">${c.cn}</div></div><div class="pos">${d.pos}</div></div>`;
+}
+function showReading(draw){
+  $("rows").innerHTML=draw.map(d=>`<div class="rrow"><b>${d.pos} · ${d.card.cn}</b>（${d.rev?"逆位":"正位"}）<br><span class="kw">${esc(d.rev?d.card.rev:d.card.up)}</span></div>`).join("");
+  $("reading").classList.add("show");
+  $("aiOut").style.display="none"; $("aiOut").textContent="";
+}
+function renderDraw(draw,animate){
+  $("stage").innerHTML=draw.map(cardHTML).join("");
+  const cards=$("stage").querySelectorAll(".card3d");
+  cards.forEach((el,i)=>{ setTimeout(()=>{ el.classList.add("flip"); el.closest(".slot").classList.add("revealed"); }, animate? 250+i*350 : 30); });
+  showReading(draw);
+}
+async function saveHistory(draw){
+  const hist=(await store.get("tarot_history_v1"))||[];
+  hist.unshift({ts:Date.now(), spread:getSpread(curSpread).name, q:$("question").value.trim(),
+    cards:draw.map(d=>({key:d.card.key,pos:d.pos,rev:d.rev}))});
+  await store.set("tarot_history_v1", hist.slice(0,30));
+  renderHistory();
+}
+async function draw(){
+  if(aiBusy) return;
+  $("drawBtn").disabled=true; $("status").textContent="洗牌中…";
+  await new Promise(r=>setTimeout(r,450));
+  lastDraw=pickCards();
+  $("status").textContent="";
+  $("drawBtn").disabled=false;
+  if(flipMode==="manual"){ renderDrawManual(lastDraw); return; }
+  renderDraw(lastDraw,true);
+  finishDraw(lastDraw);
+}
+function finishDraw(draw){
+  saveHistory(draw);
+  if(curSpread==="single"&&draw[0]) store.set("tarot_daily_v1",{date:new Date().toDateString(),key:draw[0].card.key,rev:draw[0].rev});
+}
+function renderDrawManual(draw){
+  $("reading").classList.remove("show");
+  $("stage").innerHTML=draw.map(cardHTML).join("");
+  $("status").textContent="点每张牌，把它翻开";
+  let opened=0;
+  $("stage").querySelectorAll(".card3d").forEach(el=>{
+    el.style.cursor="pointer";
+    el.onclick=()=>{ if(el.classList.contains("flip")) return; el.classList.add("flip"); el.closest(".slot").classList.add("revealed"); opened++;
+      if(opened===draw.length){ $("status").textContent=""; showReading(draw); finishDraw(draw); } };
+  });
+}
+
+/* ---------- AI 解读 ---------- */
+async function aiReading(){
+  if(!lastDraw||aiBusy) return;
+  if(!RAIN||!RAIN.ai){ toast("当前环境没有 AI 解读权限，先看牌面关键词吧"); return; }
+  aiBusy=true; $("aiBtn").disabled=true; $("aiBtn").textContent="解读中…";
+  const out=$("aiOut"); out.style.display="block"; out.textContent="正在为你解读…";
+  try{
+    const mode=$("interpSel").value;
+    let system="你是一位温和、克制的塔罗解读师。解读要具体、贴近生活，不吓人、不宿命论，最后给一句温和的建议。用中文，分段简洁。";
+    if(mode==="char"){
+      try{
+        const c=RAIN.char?await RAIN.char():null;
+        if(c&&c.name){
+          const style=$("charStyle").value.trim();
+          system=`你是${c.name}。${c.persona||""}\n现在你陪对方看一次塔罗牌阵，全程用你自己的语气、性格和你自己的看法来解读，不要自称AI，不要跳出角色。用中文，分段简洁。`;
+          if(charVer==="fun"){ system+=`\n这次用「不正经版」：除了结合牌意，还要大胆加入你基于自己性格的猜想和联想——比如换成你会怎么做、你私下怎么看对方、你的私心、吐槽和调侃都可以带出来，可以稍微跑题，但牌的基本含义不要说反，最后给一句很像你会说的建议。`; }
+          else { system+=`\n这次用「正经版」：认真、克制地解读，具体、贴近生活，不吓人、不宿命论，不调侃对方，最后给一句符合你性格的建议。`; }
+          if(style){ system+=`\n解读风格请偏向这些词：${style}。让整体语气、关注点和给建议的方向都朝这边靠。`; }
+        }
+        else toast("没拿到当前角色，先用正经解读啦");
+      }catch(e){ toast("没拿到当前角色，先用正经解读啦"); }
+    }else if(mode==="custom"){
+      const nm=$("ciName").value.trim(), ps=$("ciPersona").value.trim();
+      if(nm){ system=`你是${nm}。${ps}\n现在你陪对方看一次塔罗牌阵，全程用这个角色的语气和性格来解读，不要自称AI，不要跳出角色。解读具体、贴近生活，不吓人、不宿命论，最后给一句符合角色性格的建议。用中文，分段简洁。`; }
+      else toast("先填个角色名吧，这次先用正经解读");
+    }
+    const q=$("question").value.trim();
+    const lines=lastDraw.map(d=>`${d.pos}：${d.card.cn}（${d.rev?"逆位":"正位"}）— 关键词：${d.rev?d.card.rev:d.card.up}`).join("\n");
+    const prompt=`牌阵：${getSpread(curSpread).name}\n提问：${q||"（没有具体问题，请做整体指引）"}\n抽到的牌：\n${lines}\n\n请先总览这副牌的整体氛围，再逐张结合位置简单解读，最后给一句建议。`;
+    const text=await RAIN.ai(prompt,{system, max:900});
+    out.textContent=text||"（没有拿到解读，再试一次吧）";
+  }catch(e){
+    out.textContent="解读没成功，可能是 AI 权限还没开，或次数太频繁，稍后再试。";
+  }
+  aiBusy=false; $("aiBtn").disabled=false; $("aiBtn").textContent="✦ 开始解读";
+}
+
+/* ---------- 历史 ---------- */
+async function renderHistory(){
+  const hist=(await store.get("tarot_history_v1"))||[];
+  if(!hist.length){ $("histList").innerHTML='<div class="empty">还没有记录</div>'; return; }
+  $("histList").innerHTML=hist.map((h,i)=>{
+    const names=h.cards.map(c=>{const card=DECK.find(x=>x.key===c.key);return card?card.cn+"":"?";}).join(" · ");
+    const dt=new Date(h.ts); const ds=`${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
+    return `<button class="hrow" data-h="${i}"><span class="hmeta">${ds}</span><span class="hnames">${esc(h.spread)}：${esc(names)}</span></button>`;
+  }).join("");
+  $("histList").querySelectorAll("[data-h]").forEach(b=>b.onclick=async()=>{
+    const hist2=(await store.get("tarot_history_v1"))||[]; const h=hist2[+b.dataset.h]; if(!h) return;
+    lastDraw=h.cards.map(c=>{const card=DECK.find(x=>x.key===c.key);return {card,pos:c.pos,rev:c.rev};}).filter(d=>d.card);
+    if(lastDraw.length){
+      const spreadKey=Object.keys(SPREADS).find(k=>SPREADS[k].name===h.spread);
+      const custom=customSpreads.find(s=>s.name===h.spread);
+      if(spreadKey||custom) curSpread=spreadKey||custom.id;
+      else {
+        const restored={id:"history-"+h.ts,name:h.spread||"历史牌阵",positions:lastDraw.map(d=>d.pos)};
+        customSpreads.push(restored); curSpread=restored.id;
+      }
+      renderSpreadButtons();
+      $("question").value=h.q||"";
+      setPickMode(false);
+      renderDraw(lastDraw,false); $("status").textContent="正在查看历史记录";
+    }
+  });
+}
+
+/* ---------- 摊开自选：桌面平铺 → 选牌到底部 → 点翻面 ---------- */
+let tableDeck=[], pickedCards=[], fanSeed=1, pickVer=1, fanDone=false;
+let flipMode="auto";
+let charVer="serious";
+function neededCount(){ return getSpread(curSpread).positions.length; }
+function startFan(){
+  let pool=$("majorOnly").checked?DECK.filter(c=>c.major):DECK.slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  tableDeck=pool; pickedCards=[]; fanSeed=Math.floor(Math.random()*900)+1;
+  $("reading").classList.remove("show");
+  fanDone=false; $("arcArea").classList.remove("mini"); $("fanRedo").style.display="none";
+  renderPickArea(); renderSlots();
+}
+function renderTable(){
+  $("fanInfo").textContent=`在桌面上选 ${neededCount()} 张牌 · 已选 ${pickedCards.length} / ${neededCount()}`;
+  const used=new Set(pickedCards.map(p=>p.tidx));
+  $("tableArea").innerHTML=tableDeck.map((c,i)=>{
+    const x=3+((i*29+fanSeed*7)%82);
+    const y=8+Math.floor(i/8)*26+((i*13+fanSeed)%10);
+    const r=((i*41+fanSeed)%25)-12;
+    return `<button class="tcard" data-t="${i}" style="left:${x}%;top:${y}px;transform:rotate(${r}deg);${used.has(i)?"visibility:hidden":""}">${BACKSVG}</button>`;
+  }).join("");
+  $("tableArea").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>pickFromDeck(+b.dataset.t));
+}
+function renderSlots(animIdx){
+  const sp=getSpread(curSpread);
+  $("pickSlots").innerHTML=sp.positions.map((pos,i)=>{
+    const p=pickedCards[i];
+    if(!p) return `<div class="slot"><div class="emptyslot">第 ${i+1} 张</div><div class="pos">${pos}</div></div>`;
+    return cardHTML({card:p.card,pos,rev:p.rev});
+  }).join("");
+  $("pickSlots").querySelectorAll(".slot").forEach((slotEl,i)=>{
+    const p=pickedCards[i]; if(!p) return;
+    const card=slotEl.querySelector(".card3d");
+    if(p.flipped){
+      if(i===animIdx){ setTimeout(()=>{ card.classList.add("flip"); slotEl.classList.add("revealed"); },40); }
+      else { card.classList.add("flip"); slotEl.classList.add("revealed"); }
+    } else { card.style.cursor="pointer"; card.onclick=()=>flipPick(i);
+      const x=document.createElement("button"); x.className="unpick"; x.textContent="✕"; x.title="点错了，退回桌面";
+      x.onclick=(e)=>{ e.stopPropagation(); pickedCards.splice(i,1); afterUnpick(); };
+      slotEl.appendChild(x); }
+  });
+}
+function finishPicks(){
+  const sp=getSpread(curSpread);
+  lastDraw=pickedCards.map((x,j)=>({card:x.card,pos:sp.positions[j],rev:x.rev}));
+  setTimeout(()=>{ showReading(lastDraw); saveHistory(lastDraw);
+    if(curSpread==="single"&&lastDraw[0]) store.set("tarot_daily_v1",{date:new Date().toDateString(),key:lastDraw[0].card.key,rev:lastDraw[0].rev});
+  },650);
+}
+function autoFlipPicks(){
+  let i=0;
+  const step=()=>{ if(i>=pickedCards.length) return;
+    pickedCards[i].flipped=true; renderSlots(i); i++;
+    if(pickedCards.every(x=>x.flipped)) finishPicks(); else setTimeout(step,400);
+  };
+  setTimeout(step,400);
+}
+function flipPick(i){
+  const p=pickedCards[i]; if(!p||p.flipped) return;
+  p.flipped=true; renderSlots(i);
+  if(pickedCards.length===neededCount() && pickedCards.every(x=>x.flipped)) finishPicks();
+}
+function pickFromDeck(i){
+  if(pickedCards.length>=neededCount()){ toast("这个牌阵只需要 "+neededCount()+" 张牌，选好的在下面，点一下翻面"); return; }
+  pickedCards.push({tidx:i, card:tableDeck[i], rev: $("allowRev").checked && Math.random()<0.3, flipped:false});
+  if(pickVer===2 && pickedCards.length>=neededCount()){ fanDone=true; $("arcArea").classList.add("mini"); $("fanRedo").style.display=""; }
+  renderPickArea(); renderSlots();
+  if(pickedCards.length>=neededCount() && flipMode==="auto") autoFlipPicks();
+}
+function afterUnpick(){
+  if(pickVer===2 && fanDone && pickedCards.length<neededCount()){ fanDone=false; $("arcArea").classList.remove("mini"); $("fanRedo").style.display="none"; }
+  renderPickArea(); renderSlots();
+}
+function renderPickArea(){
+  if(pickVer===1){ $("tableArea").style.display=""; $("arcArea").classList.remove("show"); renderTable(); }
+  else { $("tableArea").style.display="none"; $("arcArea").classList.add("show"); renderArc(); }
+}
+function renderArc(){
+  $("fanInfo").textContent=`在扇形里选 ${neededCount()} 张牌 · 已选 ${pickedCards.length} / ${neededCount()}`;
+  const used=new Map(pickedCards.map((p,idx)=>[p.tidx,idx]));
+  const N=tableDeck.length;
+  $("arcFan").innerHTML=tableDeck.map((c,i)=>{
+    const a=N>1? -72 + i*(144/(N-1)) : 0;
+    const ord=used.get(i);
+    return `<button class="fcard ${ord!==undefined?"taken":""}" data-a="${i}" style="transform:rotate(${a}deg);z-index:${i}">${ord!==undefined?`<span class="ord">${ord+1}</span>`:""}<img src="${BACKIMG}" alt=""></button>`;
+  }).join("");
+  $("arcFan").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.a; if(used.has(i)) return; pickFromDeck(i); });
+}
+$("ver1").onclick=()=>{ pickVer=1; $("ver1").classList.add("active"); $("ver2").classList.remove("active"); renderPickArea(); };
+$("ver2").onclick=()=>{ pickVer=2; $("ver2").classList.add("active"); $("ver1").classList.remove("active"); renderPickArea(); };
+$("fanRedo").onclick=()=>{ pickedCards=[]; fanDone=false; $("arcArea").classList.remove("mini"); $("fanRedo").style.display="none"; renderPickArea(); renderSlots(); };
+function setFlipMode(m){ flipMode=m; $("flipAuto").classList.toggle("active",m==="auto"); $("flipManual").classList.toggle("active",m==="manual"); store.set("tarot_flip_v1",m); }
+$("flipAuto").onclick=()=>setFlipMode("auto");
+$("flipManual").onclick=()=>setFlipMode("manual");
+function setPickMode(on){
+  pickMode=on;
+  $("modeAuto").classList.toggle("active",!on); $("modePick").classList.toggle("active",on);
+  $("drawBtn").style.display=on?"none":""; $("fanArea").classList.toggle("show",on);
+  $("stage").style.display=on?"none":"";
+  if(on) startFan();
+}
+$("modeAuto").onclick=()=>setPickMode(false);
+$("modePick").onclick=()=>setPickMode(true);
+$("shuffleBtn").onclick=startFan;
+$("majorOnly").addEventListener("change",()=>{ if(pickMode) startFan(); });
+
+/* ---------- AI 小助手：导入牌阵 ---------- */
+let imgData=null;
+function parseSpreadJSON(text){
+  try{ const s=String(text), a=s.indexOf("{"), b=s.lastIndexOf("}"); if(a<0||b<=a) return null;
+    const o=JSON.parse(s.slice(a,b+1));
+    if(!o||!Array.isArray(o.positions)) return null;
+    const positions=o.positions.map(x=>String(x).trim()).filter(Boolean).slice(0,12);
+    if(!positions.length) return null;
+    return {name:String(o.name||"自定义牌阵").trim().slice(0,20)||"自定义牌阵", positions};
+  }catch(e){ return null; }
+}
+async function addCustomSpread(name,positions){
+  const item={id:"c"+Date.now(), name, positions};
+  customSpreads.push(item);
+  await store.set("tarot_spreads_v1",customSpreads);
+  curSpread=item.id; renderSpreadButtons();
+  $("assistStatus").textContent=`已导入牌阵「${name}」，共 ${positions.length} 个位置，已经帮你切换到它了。`;
+  toast("新牌阵已导入 · "+name);
+}
+$("pickImgBtn").onclick=()=>$("imgInput").click();
+$("imgInput").addEventListener("change",()=>{
+  const f=$("imgInput").files&&$("imgInput").files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ const img=new Image();
+    img.onload=()=>{ const cv=document.createElement("canvas"); const sc=Math.min(1, 768/Math.max(img.width,img.height));
+      cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      imgData=cv.toDataURL("image/jpeg",0.82);
+      $("imgPreview").src=imgData; $("imgPreview").style.display="block"; $("recognizeBtn").disabled=false;
+      $("assistStatus").textContent="图片已载入，点「识别图片中的牌阵」试试。";
+    };
+    img.src=rd.result; };
+  rd.readAsDataURL(f);
+});
+$("recognizeBtn").onclick=async()=>{
+  if(!imgData) return;
+  if(!RAIN||!RAIN.ai){ $("assistStatus").textContent="当前环境没有 AI 权限，识别不了图片。可以看着图用文字描述生成，或手动填写添加。"; return; }
+  $("recognizeBtn").disabled=true; $("assistStatus").textContent="识别中…";
+  const ask="这是一张塔罗牌阵图。请识别这个牌阵，严格只输出JSON，不要任何解释文字。格式：{\"name\":\"牌阵名称\",\"positions\":[\"位置1\",\"位置2\"]}。positions按图中顺序填写每个位置的含义；识别不到名称时name填「自定义牌阵」。";
+  const sys="你是牌阵识别助手，只输出JSON。";
+  const tries=[
+    [{role:"user",content:[{type:"text",text:ask},{type:"image_url",image_url:{url:imgData}}]}],
+    [{role:"user",content:[{type:"text",text:ask},{type:"image",data:imgData}]}]
+  ];
+  let done=false;
+  for(const t of tries){ try{ const out=await RAIN.ai(t,{system:sys,max:400}); const got=parseSpreadJSON(out); if(got){ await addCustomSpread(got.name,got.positions); done=true; break; } }catch(e){} }
+  if(!done) $("assistStatus").textContent="这次没识别成功——当前的 AI 接口可能不支持看图。别急，看着上面的图，用下面的文字描述或手动填写一样能导入。";
+  $("recognizeBtn").disabled=false;
+};
+$("genByTextBtn").onclick=async()=>{
+  const desc=$("descInput").value.trim(); if(!desc){ toast("先写一句牌阵描述吧"); return; }
+  if(!RAIN||!RAIN.ai){ $("assistStatus").textContent="当前环境没有 AI 权限，文字生成用不了，请用手动填写添加。"; return; }
+  $("genByTextBtn").disabled=true; $("assistStatus").textContent="生成中…";
+  try{
+    const out=await RAIN.ai(`根据这段描述整理出一个塔罗牌阵，严格只输出JSON，不要解释。格式：{"name":"牌阵名称","positions":["位置1","位置2"]}。描述：${desc}`,{system:"你是牌阵整理助手，只输出JSON。",max:400});
+    const got=parseSpreadJSON(out);
+    if(got) await addCustomSpread(got.name,got.positions);
+    else $("assistStatus").textContent="没整理出来，换个更具体的描述试试，或用手动填写。";
+  }catch(e){ $("assistStatus").textContent="生成失败，稍后再试，或用手动填写添加。"; }
+  $("genByTextBtn").disabled=false;
+};
+$("manualAddBtn").onclick=async()=>{
+  const name=$("manualName").value.trim();
+  const positions=$("manualPos").value.split(/[,，、\/\n]/).map(x=>x.trim()).filter(Boolean).slice(0,12);
+  if(!name){ toast("先给牌阵起个名字吧"); return; }
+  if(!positions.length){ toast("至少写一个位置含义吧"); return; }
+  await addCustomSpread(name,positions);
+  $("manualName").value=""; $("manualPos").value="";
+};
+
+/* ---------- 解读人设置 ---------- */
+function bindInterp(){
+  const sel=$("interpSel");
+  const sync=()=>{ $("customInterp").classList.toggle("show", sel.value==="custom"); $("charBox").classList.toggle("show", sel.value==="char"); store.set("tarot_interp_v1",{mode:sel.value,name:$("ciName").value,persona:$("ciPersona").value,charVer,charStyle:$("charStyle").value}); if(sel.value==="char") loadCharName(); };
+  sel.onchange=sync; $("ciName").addEventListener("change",sync); $("ciPersona").addEventListener("change",sync); $("charStyle").addEventListener("change",sync);
+  const setCharVer=v=>{ charVer=v; $("charVerSerious").classList.toggle("active",v==="serious"); $("charVerFun").classList.toggle("active",v==="fun"); sync(); };
+  $("charVerSerious").onclick=()=>setCharVer("serious"); $("charVerFun").onclick=()=>setCharVer("fun");
+  async function loadCharName(){ const el=$("charNameLine"); try{ const c=(RAIN&&RAIN.char)?await RAIN.char():null; el.textContent=c&&c.name?("当前角色："+c.name):"当前角色：没读到（可能没开权限）"; }catch(e){ el.textContent="当前角色：读取失败"; } }
+  $("charReload").onclick=loadCharName;
+  $("ciRead").onclick=async()=>{ try{ const c=(RAIN&&RAIN.char)?await RAIN.char():null; if(c&&c.name){ $("ciName").value=c.name.slice(0,16); $("ciPersona").value=(c.persona||"").slice(0,300); sync(); toast("已把当前 char 填进来，可以再改"); } else toast("没读到当前角色"); }catch(e){ toast("读取失败，可能没开权限"); } };
+  store.get("tarot_interp_v1").then(v=>{ if(v){ sel.value=v.mode||"standard"; $("ciName").value=v.name||""; $("ciPersona").value=v.persona||""; $("charStyle").value=v.charStyle||""; charVer=v.charVer||"serious"; $("charVerSerious").classList.toggle("active",charVer==="serious"); $("charVerFun").classList.toggle("active",charVer==="fun"); $("customInterp").classList.toggle("show", sel.value==="custom"); $("charBox").classList.toggle("show", sel.value==="char"); if(sel.value==="char") loadCharName(); } });
+}
+
+/* ---------- 初始化 ---------- */
+function renderSpreadButtons(){
+  const box=$("spreads"); box.innerHTML="";
+  Object.keys(SPREADS).concat(customSpreads.map(c=>c.id)).forEach(k=>{
+    const b=document.createElement("button");
+    b.className="spread"+(k===curSpread?" active":""); b.dataset.spread=k; b.textContent=getSpread(k).name;
+    b.onclick=()=>{ curSpread=k; renderSpreadButtons(); if(pickMode) startFan(); };
+    box.appendChild(b);
+  });
+  renderCustomList();
+}
+function renderCustomList(){
+  const box=$("customList"); if(!box) return;
+  box.innerHTML=customSpreads.map(c=>`<div class="csrow"><span class="n">${esc(c.name)}（${c.positions.length}张）</span><button data-delcs="${c.id}">删除</button></div>`).join("");
+  box.querySelectorAll("[data-delcs]").forEach(b=>b.onclick=async()=>{
+    customSpreads=customSpreads.filter(x=>x.id!==b.dataset.delcs);
+    if(curSpread===b.dataset.delcs) curSpread="single";
+    await store.set("tarot_spreads_v1",customSpreads); renderSpreadButtons(); toast("牌阵已删除");
+  });
+}
+$("drawBtn").onclick=draw;
+(async()=>{ const fm=await store.get("tarot_flip_v1"); if(fm==="manual") setFlipMode("manual"); })();
+$("aiBtn").onclick=aiReading;
+$("clearHist").onclick=async()=>{ await store.set("tarot_history_v1",[]); renderHistory(); toast("记录已清空"); };
+(async()=>{
+  customSpreads=(await store.get("tarot_spreads_v1"))||[];
+  renderSpreadButtons(); bindInterp();
+  renderHistory();
+  const daily=await store.get("tarot_daily_v1");
+  if(daily&&daily.date===new Date().toDateString()){
+    const card=DECK.find(x=>x.key===daily.key);
+    if(card){ $("dailyText").innerHTML=`今日指引已抽：<b>${card.cn}</b>（${daily.rev?"逆位":"正位"}）`;
+      $("dailyBar").style.display="block";
+      $("dailyView").onclick=()=>{ lastDraw=[{card,pos:"今日指引",rev:daily.rev}]; renderDraw(lastDraw,false); };
+    }
+  }
+})();
+})();
+</script>
+</body>
+</html>

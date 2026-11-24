@@ -16,6 +16,8 @@
   <script src="snowfall.js?v=1" defer></script>
   <style>@keyframes sf-safety{to{visibility:hidden;pointer-events:none}}</style>
   <noscript><style>#snowfall-splash{display:none!important}</style></noscript>
+<link rel="stylesheet" href="wallet.css?v=1">
+<script defer src="wallet.js?v=1"></script>
 </head>
 <body>
   <main class="phone" aria-label="小手机原型">
@@ -114,6 +116,7 @@
  <div class="comm-qr-area"><canvas id="commQr" width="210" height="210" aria-label="装饰二维码，不具备扫码添加功能"></canvas><p>我的通讯名片 · 展示示意</p><small>装饰图案，不是可扫描的真实二维码</small></div></div>
 </section>
 <section class="screen comm-screen" id="commEditor"><header class="comm-header"><button class="comm-icon" data-go="communications" aria-label="返回通讯">‹</button><b id="commEditorTitle">添加角色</b></header><div class="scroll settings-body"><form id="commEditorForm" class="api-form"><label>名称<input id="contactName" required maxlength="30"></label><label>角色设定<textarea id="contactPersona" rows="5" maxlength="4000" required placeholder="性格、背景、说话习惯……"></textarea></label><p class="hint">保存在当前浏览器。连接 AI 后，角色设定和对话会发送给设置中的服务商。</p><button>保存角色</button></form></div></section>
+<section class="screen" id="wallet"><header class="wallet-header"><button id="walletBack" aria-label="返回">‹</button><b id="walletHeading">钱包</b><button id="walletSettings" aria-label="钱包设置">⚙</button></header><div id="walletContent" class="wallet-content"></div><nav id="walletNav" class="wallet-nav" aria-label="钱包导航"></nav></section>
 <dialog id="commDialog"><form method="dialog"><h3 id="commDialogTitle"></h3><p id="commDialogText"></p><button>知道了</button></form></dialog>
     <div class="home-bar" role="button" tabindex="0" aria-label="回到桌面" data-go="home"></div>
   </main>

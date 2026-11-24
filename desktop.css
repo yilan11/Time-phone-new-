@@ -1,0 +1,41 @@
+/* 独立桌面分页与编辑层 */
+#home .desktop-remove{position:absolute;top:2px;right:2px;z-index:6;width:30px;height:30px;padding:0;border:1px solid #d5d0df;border-radius:50%;background:#faf8ff;color:#716783;font-size:23px;line-height:1;display:grid;place-items:center;cursor:pointer;touch-action:manipulation}
+#home .desktop-remove[hidden],.desktop-toolbar button[hidden]{display:none!important}
+.desktop-remove:focus-visible,.widget-choice button:focus-visible{outline:2px solid #76638e;outline-offset:2px}
+.widget-manager{padding:16px}.widget-category h2{font-size:14px;font-weight:500;color:#716783;margin:22px 0 8px}.widget-choice{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 10px;border:1px solid #e8e4ed;border-radius:14px;background:#faf9fc;font-size:13px}.widget-choice button{flex-shrink:0;border:1px solid #dcd6e6;border-radius:20px;background:#eee9f5;color:#655775;padding:9px 12px;font-size:12px}.widget-choice button:disabled{background:#f4f3f6;color:#96909d;cursor:default}#widgetStatus{font-size:12px;line-height:1.7;color:#716783}
+/* 图标按所在网格的宽高缩放，给名称留出空间。 */
+#home .desktop-app>span:first-child{height:auto;width:min(88cqw,calc(100cqh - 21px),72px);border-radius:24%;font-size:24px}
+#home .desktop-app{container-type:size;font-size:11px;gap:5px;padding:2px 0;line-height:1.2}
+#home.desktop-home{gap:5px;padding-left:12px;padding-right:12px}
+.desktop-toolbar{position:absolute;top:calc(39px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:5;pointer-events:none}
+.desktop-toolbar button{pointer-events:auto}
+#home .desktop-hint{font-size:9px;line-height:16px;flex-shrink:0;white-space:nowrap}
+#home.desktop-home.desktop-editing{padding-top:calc(83px + env(safe-area-inset-top,0px))}
+#home .desktop-pages{height:24px;gap:0;min-height:24px}
+#home .desktop-pages button{display:grid;place-items:center;min-width:24px;width:24px;height:24px;padding:0;background:transparent;border:0}
+#home .desktop-pages button span{display:block;width:6px;height:6px;border-radius:50%;background:#c9c9cd;transition:background .15s}
+#home .desktop-pages button[aria-current=true]{background:transparent}
+#home .desktop-pages button[aria-current=true] span{background:#656569}
+.desktop-dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;height:92px;flex-shrink:0;padding:6px 0;background:#f0f0f380;border:1px solid #e9e9ed80;border-radius:24px}
+.desktop-dock .desktop-app{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:0;border:0;background:transparent;color:#61616e;user-select:none;-webkit-user-select:none}
+.app-placeholder{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;color:#777}
+.app-placeholder>span{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;background:var(--icon-bg)}
+.app-placeholder svg{width:42px;height:42px;fill:none;stroke:#666;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.app-placeholder h2{font-size:22px;font-weight:500;margin:22px 0 0}.app-placeholder p{font-size:13px;line-height:1.8}.app-placeholder button{margin-top:20px;border:1px solid #ddd;border-radius:20px;background:#fafafa;padding:10px 22px;color:#666}
+@media(max-height:650px){.desktop-dock{height:76px}#home .desktop-hint{font-size:8px}#home .desktop-app{font-size:10px;gap:3px}#home .desktop-app>span:first-child{width:min(88cqw,calc(100cqh - 19px),64px)}}
+#home .desktop-item[hidden],#home .app-grid[hidden],#home .home-note[hidden]{display:none!important}
+#home.desktop-home{padding:calc(44px + env(safe-area-inset-top,0px)) 10px calc(28px + env(safe-area-inset-bottom,0px));overflow:hidden;gap:8px}
+.desktop-toolbar{height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px}.desktop-toolbar button{border:1px solid #dedee4;background:#f6f6f9;color:#626272;border-radius:24px;padding:8px 16px;font-size:12px}.desktop-toolbar .desktop-done{font-size:22px;padding:1px 14px}.desktop-hint{font-size:10px;color:#92929e;margin:0;min-height:15px;text-align:center}
+.desktop-stage{position:relative;flex:1;min-height:0;touch-action:none}.desktop-grid{height:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));gap:3px;position:relative}.desktop-editing .desktop-grid{background-image:none;border-radius:12px}
+.desktop-item{min-width:0;min-height:0;position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;overflow:hidden;border-radius:8px;box-sizing:border-box}.desktop-item.desktop-app{border:0;background:transparent;padding:3px 0;color:#61616e;font-size:9px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;line-height:1.2;overflow:hidden}.desktop-app>span:first-child{display:grid;place-items:center;width:min(100%,32px);aspect-ratio:1;background:var(--icon-bg);border-radius:9px;margin:0;font-size:17px;flex-shrink:0}.desktop-app svg{width:70%;height:70%;stroke:#666;stroke-width:1.35;fill:none;stroke-linecap:round;stroke-linejoin:round}.desktop-item.home-top{display:flex;flex-direction:column;justify-content:center;padding:8px}.desktop-item.home-top h1{font-size:clamp(32px,10vw,48px);letter-spacing:-2px;margin:0}.desktop-item.home-top .eyebrow{font-size:7px!important;letter-spacing:1px}.desktop-item.home-top #homeDate{font-size:10px}.desktop-item.home-art{margin:0;max-height:none;min-height:0}.desktop-item.home-art>span{font-size:9px;left:8px;bottom:10px}.desktop-item.widget{padding:10px;margin:0;border:1px solid #eee;gap:7px;background:#ffffff80}.desktop-item.widget .avatar{width:25px;height:25px;font-size:16px}.desktop-item.widget strong{font-size:10px;display:block}.desktop-item.widget p{font-size:9px;overflow-wrap:anywhere}.desktop-item .art-vase{right:20px;bottom:20px}.desktop-item .art-stem{right:50px;bottom:90px}.desktop-item .art-sun{left:12px;width:60px;height:60px}
+.desktop-editing .desktop-item:not(.desktop-drag-source){animation:desktop-wiggle .28s ease-in-out infinite alternate;outline:1px dashed #b1acc2;cursor:grab}.desktop-editing .desktop-item:nth-child(even){animation-delay:-.15s}.desktop-drag-source{opacity:.25}.desktop-ghost{position:fixed!important;z-index:9999;pointer-events:none;opacity:.86;transform:scale(1.06);box-shadow:0 8px 25px #0003;animation:none!important;background:#fafaff!important}.desktop-target{position:absolute;border:2px solid #aaa0c5;background:#c9bfdf33;pointer-events:none;z-index:3;border-radius:8px}.desktop-pages{display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;height:30px;overflow-x:auto}.desktop-pages button{border:0;background:#eeeef3;color:#8a8796;border-radius:20px;min-width:26px;height:26px;font-size:10px;flex-shrink:0}.desktop-pages button[aria-current=true]{background:#858095;color:white}.desktop-edge{position:absolute;top:0;bottom:0;width:20px;pointer-events:none;z-index:4;background:#b8afd233}.desktop-edge.right{right:0}.desktop-edge.left{left:0}@keyframes desktop-wiggle{from{transform:rotate(-.65deg)}to{transform:rotate(.65deg)}}@media(prefers-reduced-motion:reduce){.desktop-editing .desktop-item:not(.desktop-drag-source){animation:none;outline:2px dashed #aaa0c5}}
+
+/* 半透明玻璃保留图标原有尺寸与拖动网格。 */
+#home .desktop-app>span:first-child{position:relative;isolation:isolate;background:linear-gradient(145deg,#ffffffd9,#ffffff85 48%,#ffffffb0);border:1px solid #ffffffb3;box-shadow:inset 0 1px 1px #fffffff2,inset 0 -1px 2px #ffffff70,0 3px 9px #253b5926;overflow:hidden}
+#home .desktop-app>span:first-child::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:var(--icon-bg);opacity:.16;pointer-events:none}
+#home .desktop-app svg{stroke:#455368;filter:drop-shadow(0 1px 0 #ffffff80)}
+#home .desktop-app{color:#35445a;text-shadow:0 1px 3px #ffffffd9}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+ #home .desktop-app>span:first-child{background:linear-gradient(145deg,#ffffff85,#ffffff26 48%,#ffffff50);backdrop-filter:blur(14px) saturate(145%);-webkit-backdrop-filter:blur(14px) saturate(145%)}
+ #home .desktop-dock{backdrop-filter:blur(18px) saturate(130%);-webkit-backdrop-filter:blur(18px) saturate(130%)}
+}

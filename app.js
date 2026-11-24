@@ -114,12 +114,20 @@ fillStoryConfig();renderStory();
 const COMM_KEY='little-phone-communications-v1';
 let comm={contacts:[{id:'ayao',name:'阿遥',persona:'温和自然，喜欢旧书店的年轻店主。',messages:state.messages,unread:!state.notices.filter(n=>n.target==='chat').every(n=>n.read)}],profile:{name:'我',account:'local-user',status:''}};
 try{const v=JSON.parse(localStorage.getItem(COMM_KEY));if(v&&Array.isArray(v.contacts)&&v.contacts.length&&v.contacts.every(c=>typeof c.id==='string'&&typeof c.name==='string'&&Array.isArray(c.messages))&&v.profile)comm=v}catch{}
-let commTab='messages',activeContact='ayao';
+// 按用户要求，迁移时仅保留 kk；后续仍可自行添加角色。
+const kkDefault=()=>({id:'kk',name:'kk小助手',avatar:'❄',persona:'你是kk小助手，耐心、自然地帮助用户使用雪落机。',messages:[{mine:false,text:'你好，我是kk小助手 ❄ 欢迎来到雪落机。',time:Date.now()}],unread:false});
+if(!comm.kkOnlyMigrated){comm.contacts=comm.contacts.filter(c=>c.id==='kk');comm.kkOnlyMigrated=true}else{comm.contacts=comm.contacts.filter(c=>c.id!=='ayao'&&!['阿遥','阿瑶'].includes(c.name))}
+if(!comm.contacts.some(c=>c.id==='kk'))comm.contacts.unshift(kkDefault());
+comm.contacts.find(c=>c.id==='kk').avatar='❄';
+let commTab='messages',activeContact='kk';
+state.messages=comm.contacts.find(c=>c.id==='kk').messages;
+try{localStorage.setItem(COMM_KEY,JSON.stringify(comm));localStorage.setItem(KEY,JSON.stringify(state))}catch{}
+
 function commPersist(){const c=comm.contacts.find(c=>c.id===activeContact);if(c)c.messages=state.messages;try{localStorage.setItem(COMM_KEY,JSON.stringify(comm))}catch{commInfo('保存失败','浏览器无法保存通讯数据，请保留重要内容。')}}
 window.commPersist=commPersist;
 function commInfo(title,text){$('commDialogTitle').textContent=title;$('commDialogText').textContent=text;if(!$('commDialog').open)$('commDialog').showModal()}
 function commCloseMenu(){$('commMenu').hidden=true;$('commPlus').setAttribute('aria-expanded','false')}
-function commFace(c){const a=el('span','comm-face'+(c.group?' group-face':''));if(c.group){Array.from({length:9},(_,i)=>(c.members||[])[i]||'').forEach(n=>a.append(el('span','',n.slice(0,1))))}else a.textContent=c.name.slice(0,1);return a}
+function commFace(c){const a=el('span','comm-face'+(c.group?' group-face':''));if(c.group){Array.from({length:9},(_,i)=>(c.members||[])[i]||'').forEach(n=>a.append(el('span','',n.slice(0,1))))}else a.textContent=c.avatar||c.name.slice(0,1);return a}
 function commRow(title,subtitle,icon,action){const b=el('button','comm-row');b.type='button';const main=el('span','comm-row-main');main.append(el('strong','',title));if(subtitle)main.append(el('span','comm-preview',subtitle));b.append(el('span','comm-face',icon),main,el('span','comm-chevron','›'));b.onclick=action;return b}
 function commOpenChat(c){if(chatBusy){commInfo('正在回复','请等当前回复结束后再切换角色。');return}activeContact=c.id;state.messages=c.messages;c.unread=false;commPersist();renderMessages();$('chat').querySelector('header b').textContent=c.name;$('chatInput').placeholder='给'+c.name+'发消息…';go('chat');renderComm()}
 function commTime(t){if(!t)return '';const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'})}
@@ -133,10 +141,10 @@ function renderComm(){
  contacts.forEach(c=>{const last=c.messages.at(-1);const b=el('button','comm-row');const main=el('span','comm-row-main');main.append(el('strong','',c.name),el('span','comm-preview',last?.text||'暂无消息 · 点击开始聊天'));b.append(commFace(c),main,el('time','comm-time',commTime(last?.time)));if(c.unread)b.append(el('i','comm-unread-dot'));b.onclick=()=>commOpenChat(c);box.append(b)});if(!contacts.length)box.append(el('p','comm-empty','没有匹配的会话'));
  }else if(commTab==='contacts'){
  box.append(commRow('新的朋友','添加本机角色','＋',()=>go('addFriend')),commRow('群聊','创建虚构角色群聊','♧',commGroup));
- box.append(el('div','comm-section','我的角色 · '+comm.contacts.length));comm.contacts.filter(c=>c.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN')).forEach(c=>{const b=commRow(c.name,c.group?'本机角色群聊':'本机虚构角色',c.name.slice(0,1),()=>commOpenChat(c));box.append(b)});
+ box.append(el('div','comm-section','我的角色 · '+comm.contacts.length));comm.contacts.filter(c=>c.name.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'zh-CN')).forEach(c=>{const b=commRow(c.name,c.group?'本机角色群聊':'本机虚构角色',c.avatar||c.name.slice(0,1),()=>commOpenChat(c));box.append(b)});
  }else{
  const card=el('div','comm-profile');const info=el('div');info.append(el('strong','',comm.profile.name),el('small','','通讯号：'+comm.profile.account));const status=el('button','',comm.profile.status||'＋ 状态');status.onclick=()=>{const v=prompt('设置你的状态（最多30字）',comm.profile.status||'');if(v!==null){comm.profile.status=v.trim().slice(0,30);commPersist();renderComm()}};info.append(status);const qr=el('button','','▦');qr.setAttribute('aria-label','我的名片');qr.onclick=()=>go('addFriend');card.append(el('span','comm-face',comm.profile.name.slice(0,1)),info,qr);box.append(card);
- box.append(commRow('钱包','','▤',()=>commInfo('钱包','这是虚构小手机，不连接银行账户，不支持真实收付款。')),commRow('收藏','','☆',()=>commInfo('收藏','收藏功能尚未实现。')),commRow('朋友圈','','▧',()=>go('feed')),commRow('表情','','(≖֊≖)',()=>commInfo('表情','表情管理尚未实现。你可以在聊天输入框中使用手机键盘的表情。')),commRow('设置','','⚙',()=>go('settings')));
+ box.append(commRow('钱包','','▤',()=>walletOpen()),commRow('收藏','','☆',()=>commInfo('收藏','收藏功能尚未实现。')),commRow('朋友圈','','▧',()=>go('feed')),commRow('表情','','(≖֊≖)',()=>commInfo('表情','表情管理尚未实现。你可以在聊天输入框中使用手机键盘的表情。')),commRow('设置','','⚙',()=>go('settings')));
  }
 }
 function commNewRole(name=''){$('contactName').value=name;$('contactPersona').value='';$('commEditorTitle').textContent='添加角色';go('commEditor')}
@@ -146,10 +154,10 @@ $('commPlus').onclick=()=>{const open=$('commMenu').hidden;$('commMenu').hidden=
 document.addEventListener('click',e=>{if(!e.target.closest('#commMenu')&&!e.target.closest('#commPlus'))commCloseMenu()});document.addEventListener('keydown',e=>{if(e.key==='Escape')commCloseMenu()});
 document.querySelectorAll('[data-comm-tab]').forEach(b=>b.onclick=()=>{commTab=b.dataset.commTab;$('commSearch').value='';renderComm()});
 $('commSearchToggle').onclick=()=>{if(commTab==='me')commTab='messages';$('commSearchToggle').classList.toggle('on');renderComm();if(!$('commSearchBox').hidden)$('commSearch').focus()};$('commSearch').oninput=renderComm;
-const commActions={group:commGroup,add:()=>go('addFriend'),scan:()=>commInfo('扫一扫','当前版本尚未接入相机或二维码识别，不会申请相机权限。'),pay:()=>commInfo('收付款','仅为虚构小手机入口，不支持真实支付、转账或收款。')};
+const commActions={group:commGroup,add:()=>go('addFriend'),scan:()=>commInfo('扫一扫','当前版本尚未接入相机或二维码识别，不会申请相机权限。'),pay:()=>walletOpen('pay')};
 document.querySelectorAll('[data-comm-action]').forEach(b=>b.onclick=()=>{commCloseMenu();commActions[b.dataset.commAction]()});
 $('addMore').onclick=()=>commInfo('添加朋友','输入名称可创建本机虚构角色。没有真实账号搜索或好友服务器。');
-$('friendSearchForm').onsubmit=e=>{e.preventDefault();const name=$('friendSearch').value.trim();if(!name)return;const box=$('friendResult');box.replaceChildren();const found=comm.contacts.filter(c=>c.name.includes(name)||c.id===name);found.forEach(c=>box.append(commRow(c.name,'本机已有角色',c.name.slice(0,1),()=>commOpenChat(c))));box.append(commRow('创建角色「'+name+'」','填写人设后保存到本机','＋',()=>commNewRole(name)))};
+$('friendSearchForm').onsubmit=e=>{e.preventDefault();const name=$('friendSearch').value.trim();if(!name)return;const box=$('friendResult');box.replaceChildren();const found=comm.contacts.filter(c=>c.name.includes(name)||c.id===name);found.forEach(c=>box.append(commRow(c.name,'本机已有角色',c.avatar||c.name.slice(0,1),()=>commOpenChat(c))));box.append(commRow('创建角色「'+name+'」','填写人设后保存到本机','＋',()=>commNewRole(name)))};
 $('friendActions').append(commRow('扫一扫','扫描二维码名片 · 暂未接入','▣',commActions.scan),commRow('手机联系人','不读取手机真实通讯录','♙',()=>commInfo('手机联系人','此网页没有读取真实手机通讯录。添加角色请使用上面的搜索框。')),commRow('建群','与本机角色进入同一个群聊','♧',commGroup),commRow('公众号和服务号','功能尚未接入','···',()=>commInfo('公众号和服务号','当前没有公众号或服务号服务。')));
 // 装饰性名片图案，显式标注不可扫码，避免伪造有效二维码。
 {const ctx=$('commQr').getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,210,210);ctx.fillStyle='#777';for(let y=0;y<25;y++)for(let x=0;x<25;x++)if((x*17+y*13+x*y)%7<3)ctx.fillRect(5+x*8,5+y*8,6,6);for(const [x,y]of [[5,5],[149,5],[5,149]]){ctx.fillRect(x,y,56,56);ctx.clearRect(x+8,y+8,40,40);ctx.fillRect(x+16,y+16,24,24)}ctx.fillStyle='white';ctx.fillRect(77,77,56,56);ctx.fillStyle='#555';ctx.fillRect(85,85,40,40);ctx.fillStyle='white';ctx.font='22px sans-serif';ctx.fillText('通',94,113)}
@@ -157,3 +165,5 @@ const originalGo=go;go=function(id){if(id==='communications'){if(document.queryS
 $('chat').querySelector('.back').dataset.go='communications';
 const originalRenderMessages=renderMessages;renderMessages=function(){originalRenderMessages();if(document.querySelector('#chat.active'))commPersist()};
 const selected=comm.contacts.find(c=>c.id===activeContact)||comm.contacts[0];activeContact=selected.id;state.messages=selected.messages;renderMessages();renderComm();
+
+$('chat').querySelector('header b').textContent='kk小助手';$('chatInput').placeholder='给kk小助手发消息…';
