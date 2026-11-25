@@ -1,0 +1,18 @@
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#faf9f6;color:#45434b;font-family:system-ui,-apple-system,sans-serif}
+.notes-app{max-width:600px;margin:auto;padding:20px 18px 24px}
+.notes-heading span{font-size:10px;letter-spacing:3px;color:#8b859c}
+.notes-heading h1{font-size:23px;font-weight:500;margin:8px 0}
+.notes-heading p,.notes-help{font-size:12px;color:#79747f;line-height:1.8}
+.notes-editor{display:flex;flex-direction:column;gap:9px;margin-top:22px}
+.notes-editor label{font-size:12px;color:#716a80}
+.notes-editor input,.notes-editor textarea{width:100%;min-width:0;border:1px solid #e2dfE8;border-radius:12px;background:#fff;color:#45434b;padding:12px;font:16px/1.7 system-ui,-apple-system,sans-serif}
+.notes-editor textarea{resize:vertical;min-height:160px;overflow-wrap:anywhere}
+.notes-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:5px}
+.notes-actions button{border:0;border-radius:12px;background:#777087;color:#fff;padding:12px 18px;font:14px system-ui;cursor:pointer;min-height:44px}
+.notes-actions span{font-size:11px;color:#81798d;white-space:nowrap}
+.notes-editor :focus-visible{outline:2px solid #9a8eb2;outline-offset:2px}
+#notes-status{font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+#notes-status[data-error="true"]{color:#a13e40}
+.notes-help{border-top:1px solid #e8e4eb;padding-top:12px;margin-bottom:0}
+@media(max-height:600px){.notes-app{padding-top:12px}.notes-heading h1{font-size:20px}.notes-editor{margin-top:14px}.notes-editor textarea{min-height:140px;height:160px}}

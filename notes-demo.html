@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>备忘录 · 雪落机独立 HTML 试点</title>
+<link rel="stylesheet" href="notes-demo.css?v=1">
+<script defer src="notes-demo.js?v=1"></script>
+</head>
+<body>
+<main class="notes-app">
+  <div class="notes-heading"><span>LOCAL NOTES</span><h1>留下一点小事</h1><p>独立 HTML 导入试点 · 无需 AI 接口</p></div>
+  <form id="notes-form" class="notes-editor">
+    <label for="notes-title">标题</label>
+    <input id="notes-title" name="title" maxlength="120" placeholder="给今天取个名字" autocomplete="off">
+    <label for="notes-body">正文</label>
+    <textarea id="notes-body" name="body" maxlength="50000" placeholder="想记住的事，慢慢写在这里……" rows="10"></textarea>
+    <div class="notes-actions"><button type="submit">保存备忘录</button><span id="notes-count">0 字</span></div>
+  </form>
+  <p id="notes-status" role="status" aria-live="polite">正在读取本机记录……</p>
+  <p class="notes-help">输入后自动保存；也可以点击保存按钮。内容仅保存在当前浏览器、当前地址下，不会上传。重要内容请另行备份；清理浏览器数据会丢失。</p>
+</main>
+</body>
+</html>

@@ -46,19 +46,21 @@ $('reset').addEventListener('click',()=>{if(chatBusy){alert('请等当前回复�
 function renderAll(){renderMessages();renderPosts();renderNotices()}renderAll();
 // 美化只修改独立配置，不改写聊天或接口数据。
 const BEAUTY_KEY='little-phone-beauty-v1';
-const beautyDefault={title:'把日子过成喜欢的样子',subtitle:'留一点空白，等故事发生。',bg:'#ffffff',icon:'#eeeeee',size:'16'};
+const beautyDefault={title:'把日子过成喜欢的样子',subtitle:'留一点空白，等故事发生。',bg:'wallpaper',icon:'#eeeeee',size:'16'};
 let beauty={...beautyDefault};
 try{const v=JSON.parse(localStorage.getItem(BEAUTY_KEY));if(v&&typeof v==='object')beauty={...beauty,...v}}catch{}
 function persist(key,value,statusId){try{localStorage.setItem(key,JSON.stringify(value));return true}catch{$(statusId).textContent='保存失败：浏览器存储空间不足或不允许保存，请先保留重要内容。';return false}}
 function applyBeauty(){
   $('homeTitle').textContent=beauty.title;$('homeSubtitle').textContent=beauty.subtitle;
-  document.documentElement.style.setProperty('--home-bg',/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');
+  const wallpaper=beauty.bg==='wallpaper';
+  document.documentElement.style.setProperty('--home-bg',wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff'));
+  document.documentElement.style.setProperty('--home-wallpaper',wallpaper?"url('snowfall-assets/default-wallpaper.png')":'none');
   document.documentElement.style.setProperty('--icon-bg',/^#[0-9a-f]{6}$/i.test(beauty.icon)?beauty.icon:'#eeeeee');
   document.documentElement.style.setProperty('--reading-size',['14','16','18'].includes(beauty.size)?beauty.size+'px':'16px');
-  $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=beauty.bg;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;
+  $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');$('beautyWallpaper').checked=wallpaper;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;
 }
-$('beautyForm').addEventListener('submit',e=>{e.preventDefault();const title=$('beautyTitle').value.trim();if(!title){$('beautyStatus').textContent='请填写桌面标题。';return}const next={title,subtitle:$('beautySubtitle').value.trim(),bg:$('beautyBg').value,icon:$('beautyIcon').value,size:$('beautySize').value};if(persist(BEAUTY_KEY,next,'beautyStatus')){beauty=next;applyBeauty();$('beautyStatus').textContent='外观已保存，回到桌面就能看到。'}});
-$('beautyDefault').addEventListener('click',()=>{if(persist(BEAUTY_KEY,beautyDefault,'beautyStatus')){beauty={...beautyDefault};applyBeauty();$('beautyStatus').textContent='已恢复白底、灰色图标和默认文字。'}});applyBeauty();
+$('beautyForm').addEventListener('submit',e=>{e.preventDefault();const title=$('beautyTitle').value.trim();if(!title){$('beautyStatus').textContent='请填写桌面标题。';return}const next={title,subtitle:$('beautySubtitle').value.trim(),bg:$('beautyWallpaper').checked?'wallpaper':$('beautyBg').value,icon:$('beautyIcon').value,size:$('beautySize').value};if(persist(BEAUTY_KEY,next,'beautyStatus')){beauty=next;applyBeauty();$('beautyStatus').textContent='外观已保存，回到桌面就能看到。'}});
+$('beautyDefault').addEventListener('click',()=>{if(persist(BEAUTY_KEY,beautyDefault,'beautyStatus')){beauty={...beautyDefault};applyBeauty();$('beautyStatus').textContent='已恢复默认壁纸、液态玻璃图标和默认文字。'}});applyBeauty();
 
 // 相遇拥有独立的剧情设定与历史，使用设置页同一接口。
 const STORY_KEY='little-phone-encounter-v1';
