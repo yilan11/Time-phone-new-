@@ -54,7 +54,8 @@ function applyBeauty(){
   $('homeTitle').textContent=beauty.title;$('homeSubtitle').textContent=beauty.subtitle;
   const wallpaper=beauty.bg==='wallpaper';
   document.documentElement.style.setProperty('--home-bg',wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff'));
-  document.documentElement.style.setProperty('--home-wallpaper',wallpaper?"url('snowfall-assets/default-wallpaper.png')":'none');
+  if(wallpaper) document.documentElement.style.removeProperty('--home-wallpaper');
+  else document.documentElement.style.setProperty('--home-wallpaper','none');
   document.documentElement.style.setProperty('--icon-bg',/^#[0-9a-f]{6}$/i.test(beauty.icon)?beauty.icon:'#eeeeee');
   document.documentElement.style.setProperty('--reading-size',['14','16','18'].includes(beauty.size)?beauty.size+'px':'16px');
   $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');$('beautyWallpaper').checked=wallpaper;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;
