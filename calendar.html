@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>日程 · Calendar</title>
+<style>
+:root{--bg:#fff;--ink:#222;--sub:#888;--line:#e8e8e8;--soft:#f4f4f4;--button:#dedede;--accent:#777;--today:#333}
+:root[data-theme="dark"]{--bg:#171717;--ink:#eee;--sub:#aaa;--line:#383838;--soft:#242424;--button:#3a3a3a;--accent:#aaa;--today:#ddd}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;min-height:100vh}
+.app{max-width:520px;margin:0 auto;padding:18px 16px 26px}
+.top{display:flex;justify-content:space-between;align-items:center;margin:8px 0 22px}
+.brand{font-size:24px;font-weight:700;letter-spacing:.04em}
+.subtitle{font-size:12px;color:var(--sub);margin-top:3px}
+.iconbtn,.btn{border:0;background:var(--button);color:var(--ink);border-radius:14px;padding:10px 14px;font-size:14px;cursor:pointer}
+.iconbtn{width:42px;height:42px;padding:0;font-size:19px}
+.monthbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.monthlabel{font-size:22px;font-weight:650}
+.monthnav{display:flex;gap:8px}
+.weekdays,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.weekdays div{text-align:center;font-size:12px;color:var(--sub);padding:8px 0}
+.day{min-height:53px;border:1px solid transparent;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;font-size:14px;position:relative}
+.day.muted{color:var(--sub);opacity:.45}
+.day.today{border:1px solid var(--ink);font-weight:700}
+.day.selected{background:var(--soft);border-color:var(--line)}
+.day.multi-selected{background:#dedede;border:1px solid #888;color:#222;font-weight:700}
+.multi-hint{display:none;margin:10px 0;padding:10px 12px;background:var(--soft);border-radius:12px;color:var(--sub);font-size:12px}
+.multi-hint.active{display:block}
+.multi-actions{display:flex;gap:8px;margin:14px 0}
+.multi-actions button{flex:1}
+.dots{display:flex;gap:3px;height:5px}
+.dot{width:4px;height:4px;background:var(--accent);border-radius:50%}
+.section{margin-top:24px}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sectionhead h2{font-size:17px;margin:0}
+.count{font-size:12px;color:var(--sub)}
+.eventlist{display:flex;flex-direction:column;gap:9px}
+.event{border:1px solid var(--line);border-radius:15px;padding:12px;display:flex;gap:12px;align-items:flex-start}
+.datebadge{min-width:44px;text-align:center;background:var(--soft);border-radius:11px;padding:7px 5px;font-size:12px;color:var(--sub)}
+.datebadge strong{display:block;font-size:17px;color:var(--ink)}
+.eventbody{flex:1;min-width:0}
+.eventtitle{font-weight:600;word-break:break-word}
+.eventnote{font-size:12px;color:var(--sub);margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.eventactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.smallbtn{border:0;background:var(--soft);color:var(--ink);border-radius:9px;padding:6px 9px;font-size:12px;cursor:pointer}
+.empty{border:1px dashed var(--line);border-radius:14px;color:var(--sub);text-align:center;padding:26px 10px;font-size:13px}
+.modalwrap{position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;align-items:flex-end;justify-content:center;z-index:9;padding:12px}
+.modalwrap.open{display:flex}
+.modal{background:var(--bg);color:var(--ink);width:100%;max-width:500px;border-radius:22px;padding:18px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 16px;font-size:18px}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px}
+input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);padding:12px;font:inherit;outline:none}
+textarea{min-height:80px;resize:vertical}
+.modalactions{display:flex;gap:9px;margin-top:16px}
+.modalactions button{flex:1}
+.primary{background:#777;color:#fff}
+.toastbox{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;max-width:90%;padding:12px 16px;border-radius:14px;background:#333;color:white;font-size:13px;display:none;z-index:15}
+.remind{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:20;align-items:center;justify-content:center;padding:18px}
+.remind.show{display:flex}
+.remindcard{background:var(--bg);color:var(--ink);border-radius:22px;padding:22px;width:100%;max-width:420px}
+.remindcard h3{margin:0 0 12px}
+.remindcard p{font-size:14px;line-height:1.65;margin:7px 0}
+.remindcard button{width:100%;margin-top:14px}
+@media(max-width:360px){.day{min-height:45px}.app{padding:14px 12px}.monthlabel{font-size:20px}}
+/* Personal calendar: isolated inside this document. */
+:root{--button:#efefef;--accent:#929292}
+:root[data-theme="dark"]{--button:#303030;--accent:#aaa;color-scheme:dark}
+:root:not([data-theme="dark"]){color-scheme:light}
+button,input,textarea{font-family:inherit}
+button{touch-action:manipulation}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button:disabled{opacity:.4;cursor:default}
+[hidden]{display:none!important}
+.app{padding-top:16px;padding-bottom:32px}
+.top{gap:12px;margin:0 0 20px;align-items:flex-start}
+.caption-area{flex:1;min-width:0}
+.caption{border:0;background:none;color:var(--ink);padding:5px 0;text-align:left;font-size:19px;line-height:1.5;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;touch-action:manipulation;cursor:pointer}
+.caption-hint,.hint{font-size:11px;line-height:1.6;color:var(--sub);margin:3px 0 0}
+.tools{display:flex;gap:6px;flex-shrink:0}
+.monthbar{align-items:flex-end;margin-bottom:8px;padding-bottom:16px;border-bottom:1px solid var(--line);gap:10px}
+.monthlabel{display:flex;align-items:center;gap:16px;min-width:0;line-height:1}
+.month-number{font-size:76px;font-weight:300;letter-spacing:-.06em;min-width:1.05em;font-variant-numeric:tabular-nums}
+.year-number{display:block;font-size:37px;font-weight:500;letter-spacing:-.04em}
+.month-english{display:block;font-size:13px;letter-spacing:.1em;color:var(--sub);margin-top:8px}
+.monthnav{gap:4px;padding-bottom:3px}
+.monthnav .iconbtn{width:32px;height:36px;background:none;font-size:28px}
+.date-mode{font-size:11px;color:var(--sub);margin:8px 0 5px;line-height:1.7}
+.weekdays,.grid{gap:3px;grid-template-columns:repeat(7,minmax(0,1fr))}
+.day{width:100%;min-width:0;min-height:60px;padding:5px 1px;border:1px solid transparent;background:none;color:var(--ink);font:inherit;font-size:15px;border-radius:12px;gap:3px}
+.day.muted{opacity:.4}
+.day.today{font-weight:inherit;border-color:var(--accent)}
+.day.selected{background:var(--soft);border-color:var(--line)}
+.day.today.selected{border-color:var(--accent)}
+.day.multi-selected{background:var(--button);border-color:var(--accent);color:var(--ink);font-weight:inherit}
+.day-number{line-height:1.25;font-variant-numeric:tabular-nums}
+.day-emoji{height:17px;line-height:17px;font-size:13px;max-width:100%;overflow:hidden;white-space:nowrap}
+.dots{height:5px;align-items:center;max-width:100%}
+.dot{display:block;flex-shrink:0}
+.dot.manual{width:5px;height:5px;background:#999}
+.note-mark{width:4px;height:4px;border:1px solid var(--sub);border-radius:1px;display:block}
+.multi-actions{gap:6px;flex-wrap:wrap}
+.multi-actions .btn{padding:11px 5px;font-size:12px;min-height:40px;min-width:0}
+.sectionhead{gap:8px;flex-wrap:wrap}
+.sectionhead h2{font-size:16px}
+.sectiontools{display:flex;align-items:center;gap:8px}
+.date-note{border-left:2px solid var(--line);padding:7px 12px;margin:0 0 12px;font-size:13px;color:var(--sub);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}
+.modalwrap{padding:12px;overscroll-behavior:contain}
+.modal{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);padding-bottom:calc(18px + env(safe-area-inset-bottom,0px));overscroll-behavior:contain;overflow-wrap:anywhere}
+.modal[role="dialog"]:focus{outline:none}
+.modal input,.modal textarea{font-size:16px}
+.date-fields{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.date-fields input{min-width:0;padding:12px 8px}
+.checkrow{display:flex;align-items:center;gap:8px;min-height:40px;color:var(--ink)}
+.checkrow input{width:18px;height:18px;flex-shrink:0;accent-color:#888}
+.color-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.color-row input[type="color"]{width:54px;height:42px;padding:4px}
+.modalactions{flex-wrap:wrap}
+.modalactions .btn{min-width:75px}
+.summary{font-size:12px;line-height:1.7;color:var(--sub);overflow-wrap:anywhere}
+.toastbox{bottom:calc(20px + env(safe-area-inset-bottom,0px));line-height:1.5}
+.remindcard{max-height:85vh;overflow:auto}
+@media(max-width:360px){.month-number{font-size:64px}.year-number{font-size:32px}.monthlabel{gap:12px}.month-english{font-size:11px}.day{min-height:54px}.caption{font-size:17px}.iconbtn{width:36px;height:38px}.tools{gap:4px}.app{padding:14px 12px 28px}}
+
+.date-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+.date-toolbar .date-mode{flex:1;margin:0}
+.date-toolbar .smallbtn{flex-shrink:0;min-height:36px}
+.caption-hint .smallbtn{padding:2px 7px;margin-left:5px;background:none;text-decoration:underline;color:var(--sub)}
+.day-number{font-weight:400}
+.day[aria-pressed="true"]{outline-offset:2px}
+.date-note[hidden]{display:none}
+body.modal-open{overflow:hidden}
+.modal .hint{margin:8px 0}
+.modal [role="alert"]{color:var(--ink);font-size:13px;line-height:1.6;min-height:1em;margin:10px 0 0}
+.remindcard{overflow-wrap:anywhere}
+@media(max-width:340px){.monthlabel{gap:8px}.year-number{font-size:30px}.month-number{font-size:62px}.monthnav{gap:0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="caption-area">
+      <button class="caption" id="caption" title="双击或连续轻点两次，编辑文案">˶ᗜ - ᗜ˶</button>
+    </div>
+    <div class="tools">
+      <button class="iconbtn" id="todayBtn" title="回到今天，恢复跟随现实日期" aria-label="回到今天">⌖</button>
+      <button class="iconbtn" id="themeBtn" title="切换主题" aria-label="切换主题">◐</button>
+    </div>
+  </header>
+  <div class="monthbar">
+    <div class="monthlabel" id="monthLabel" role="heading" aria-level="1">
+      <span class="month-number" id="monthNumber"></span>
+      <span><span class="year-number" id="yearNumber"></span><span class="month-english" id="monthEnglish"></span></span>
+    </div>
+    <div class="monthnav"><button class="iconbtn" id="prevMonth" aria-label="上个月">‹</button><button class="iconbtn" id="nextMonth" aria-label="下个月">›</button></div>
+  </div>
+  <div class="date-toolbar"><p class="date-mode" id="dateMode"></p><button class="smallbtn" id="setDateBtn">设置日期</button></div>
+  <div class="weekdays"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+  <div class="grid" id="calendarGrid"></div>
+  <div class="multi-hint" id="multiHint">多选日期模式：点击日期可选择或取消，选好后点「批量添加日程」。</div>
+  <div class="multi-actions"><button class="btn" id="multiBtn">多选日期</button><button class="btn" id="clearMultiBtn">清除选择</button></div>
+  <section class="section">
+    <div class="sectionhead"><h2 id="selectedLabel">当天日程</h2><div class="sectiontools"><span class="count" id="eventCount"></span><button class="smallbtn" id="decorateBtn">装饰日期</button></div></div>
+    <div class="date-note" id="selectedNote" hidden></div>
+    <div class="eventlist" id="eventList"></div>
+  </section>
+  <section class="section">
+    <button class="btn primary" style="width:100%" id="addBtn">＋ 添加日程</button>
+  </section>
+</div>
+<div class="modalwrap" id="modalWrap">
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
+  <h3 id="modalTitle">添加日程</h3>
+  <label for="eventDate">日期 / 已选日期</label><div id="eventDateSummary" style="font-size:13px;color:var(--sub);padding:9px 0"></div><input type="date" id="eventDate" hidden>
+  <label for="eventName">日程标题</label><input id="eventName" maxlength="100" placeholder="例如：考试、纪念日、约会">
+  <label for="eventNote">备注（可选）</label><textarea id="eventNote" placeholder="写下提醒内容…"></textarea>
+  <div class="modalactions"><button class="btn" id="cancelBtn">取消</button><button class="btn primary" id="saveBtn">保存</button></div>
+ </div>
+</div>
+<div class="modalwrap" id="captionWrap">
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="captionTitle" tabindex="-1">
+  <h3 id="captionTitle">编辑顶部文案</h3>
+  <label for="captionInput">文案（最多 120 字）</label><textarea id="captionInput" maxlength="240" placeholder="写下喜欢的话或颜文字…"></textarea>
+  <p class="hint">支持换行和 emoji；留空会恢复默认颜文字。</p><p id="captionError" role="alert"></p>
+  <div class="modalactions"><button class="btn" data-close="captionWrap">取消</button><button class="btn primary" id="saveCaptionBtn">保存文案</button></div>
+ </div>
+</div>
+<div class="modalwrap" id="dateWrap">
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dateTitle" tabindex="-1">
+  <h3 id="dateTitle">设置显示日期</h3><p class="hint">默认跟随手机日期。手动设置只改变日历显示，不修改系统时间；提醒始终按真实日期。</p>
+  <div class="date-fields"><div><label for="manualYear">年</label><input id="manualYear" type="text" inputmode="numeric" maxlength="4" placeholder="2026"></div><div><label for="manualMonth">月</label><input id="manualMonth" type="text" inputmode="numeric" maxlength="2" placeholder="1–12"></div><div><label for="manualDay">日</label><input id="manualDay" type="text" inputmode="numeric" maxlength="2" placeholder="1–31"></div></div>
+  <p id="dateError" role="alert"></p><div class="modalactions"><button class="btn" data-close="dateWrap">取消</button><button class="btn" id="followTodayBtn">跟随现实日期</button><button class="btn primary" id="saveDateBtn">设为此日期</button></div>
+ </div>
+</div>
+<div class="modalwrap" id="decorationWrap">
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="decorationTitle" tabindex="-1">
+  <h3 id="decorationTitle">装饰日期</h3><p class="hint" id="decorationDate"></p>
+  <label for="decorationEmoji">Emoji / 小标记（最多 16 字）</label><input id="decorationEmoji" maxlength="64" placeholder="例如：🌨️、🎂、♡">
+  <label class="checkrow"><input type="checkbox" id="decorationDot">显示一个灰色小点</label>
+  <label class="checkrow"><input type="checkbox" id="decorationBold">日期数字加粗</label>
+  <div class="color-row"><label class="checkrow"><input type="checkbox" id="decorationUseColor">单独设置数字颜色</label><input id="decorationColor" type="color" value="#8581a6" aria-label="日期数字颜色"></div>
+  <label for="decorationNote">这一天的备注（可选，最多 1000 字）</label><textarea id="decorationNote" maxlength="2000" placeholder="备注会显示在选中日期的日程上方"></textarea>
+  <p id="decorationError" role="alert"></p><div class="modalactions"><button class="btn" data-close="decorationWrap">取消</button><button class="btn" id="clearDecorationBtn">清除装饰</button><button class="btn primary" id="saveDecorationBtn">保存装饰</button></div>
+ </div>
+</div>
+<div class="remind" id="remindWrap"><div class="remindcard"><h3>今日提醒</h3><div id="remindText"></div><button class="btn primary" id="dismissRemind">知道了</button></div></div>
+<div class="toastbox" id="toast"></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const EVENT_KEY='schedule.calendar.v1', PREF_KEY='schedule.calendar.preferences.v1', REMIND_KEY='schedule.reminded.date';
+const DEFAULT_CAPTION='˶ᗜ - ᗜ˶';
+const MONTHS=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+const makeDate=(y,m,d)=>{const v=new Date(0);v.setHours(12,0,0,0);v.setFullYear(y,m,d);return v};
+const dateKey=d=>`${String(d.getFullYear()).padStart(4,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function parseDate(k){
+ if(typeof k!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(k))return null;
+ const [y,m,d]=k.split('-').map(Number),v=makeDate(y,m-1,d);
+ return y>=1&&y<=9999&&dateKey(v)===k?v:null;
+}
+const monthOf=d=>makeDate(d.getFullYear(),d.getMonth(),1);
+const defaults=()=>({version:1,caption:DEFAULT_CAPTION,manualDate:null,decorations:{}});
+let today=dateKey(new Date()),selected=today,view=monthOf(new Date()),events=[],prefs=defaults();
+let editId=null,modalDates=[],multiMode=false,multiDates=[],decorationTarget=null,busy=false,toastTimer,lastFocus;
+const blocked=new Set(),modalIds=['modalWrap','captionWrap','dateWrap','decorationWrap'];
+const length=s=>Array.from(s).length;
+function toast(msg){const t=$('toast');clearTimeout(toastTimer);t.textContent=msg;t.style.display='block';toastTimer=setTimeout(()=>t.style.display='none',3400);try{window.rain?.toast?.(msg)}catch{}}
+function decode(v){return typeof v==='string'?JSON.parse(v):v}
+function validEvents(v){return Array.isArray(v)&&v.every(e=>e&&typeof e.id==='string'&&parseDate(e.date)&&typeof e.title==='string'&&(e.note==null||typeof e.note==='string'))}
+function validPrefs(v){return v&&typeof v==='object'&&!Array.isArray(v)&&(!v.decorations||(typeof v.decorations==='object'&&!Array.isArray(v.decorations)))}
+async function readData(key,valid,fallback){
+ let damaged=false,unreadable=false;
+ try{if(window.rain?.storage?.get){const raw=await window.rain.storage.get(key);if(raw!=null){const v=decode(raw);if(valid(v))return v;damaged=true}}}catch{unreadable=true}
+ try{const raw=localStorage.getItem(key);if(raw!=null){try{const v=decode(raw);if(valid(v))return v;damaged=true}catch{damaged=true}}}catch{unreadable=true}
+ if(damaged){blocked.add(key);toast('检测到日历存储格式异常，已保留原数据，未覆盖。请先备份后修复。')}
+ else if(unreadable)toast('部分存储暂不可读，将尝试可用的本地存储。');
+ return fallback;
+}
+async function writeData(key,value){
+ if(blocked.has(key)){toast('原数据格式异常，已阻止覆盖；请先备份并修复该日历数据。');return false}
+ try{if(window.rain?.storage?.set){const result=await window.rain.storage.set(key,value);if(result!==false)return true}}catch{}
+ try{localStorage.setItem(key,JSON.stringify(value));return true}catch{toast('保存失败：本地存储不可用或已满。本次修改未保存，请释放空间后重试。');return false}
+}
+function normalizePrefs(v){
+ const result=defaults();
+ if(typeof v.caption==='string'&&v.caption.trim())result.caption=Array.from(v.caption).slice(0,120).join('');
+ if(parseDate(v.manualDate))result.manualDate=v.manualDate;
+ for(const [k,d] of Object.entries(v.decorations||{})){
+  if(!parseDate(k)||!d||typeof d!=='object')continue;
+  result.decorations[k]={emoji:typeof d.emoji==='string'?Array.from(d.emoji).slice(0,16).join(''):'',color:typeof d.color==='string'&&/^#[0-9a-f]{6}$/i.test(d.color)?d.color:null,bold:d.bold===true,dot:d.dot===true,note:typeof d.note==='string'?Array.from(d.note).slice(0,1000).join(''):''};
+ }
+ return result;
+}
+async function savePrefs(next){if(!await writeData(PREF_KEY,next))return false;prefs=next;render();return true}
+async function saveEvents(next){if(!await writeData(EVENT_KEY,next))return false;events=next;render();return true}
+function clonePrefs(){return {...prefs,decorations:{...prefs.decorations}}}
+function fmtLabel(k){const d=parseDate(k);return d?`${d.getMonth()+1}月${d.getDate()}日`:k}
+function node(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el}
+function render(){
+ const y=view.getFullYear(),m=view.getMonth();
+ $('monthNumber').textContent=String(m+1).padStart(2,'0');$('yearNumber').textContent=String(y).padStart(4,'0');$('monthEnglish').textContent=MONTHS[m];
+ $('monthLabel').setAttribute('aria-label',`${y}年${m+1}月`);$('caption').textContent=prefs.caption;
+ $('dateMode').textContent=prefs.manualDate?`手动日期 · ${prefs.manualDate}`:`跟随现实日期 · ${today}`;
+ $('prevMonth').disabled=y===1&&m===0;$('nextMonth').disabled=y===9999&&m===11;
+ const start=makeDate(y,m,1-view.getDay()),grid=$('calendarGrid');grid.replaceChildren();
+ for(let i=0;i<42;i++){
+  const d=makeDate(start.getFullYear(),start.getMonth(),start.getDate()+i),k=dateKey(d),deco=prefs.decorations[k]||{};
+  const day=node('button','day'+(d.getMonth()!==m?' muted':'')+(k===today?' today':'')+(k===selected&&!multiMode?' selected':'')+(multiMode&&multiDates.includes(k)?' multi-selected':''));
+  day.type='button';day.dataset.date=k;day.disabled=!parseDate(k);day.setAttribute('aria-pressed',String(multiMode?multiDates.includes(k):k===selected));
+  if(k===today)day.setAttribute('aria-current','date');
+  const count=events.filter(e=>e.date===k).length;
+  day.setAttribute('aria-label',`${k}${k===today?' 今天':''}${deco.emoji?' '+deco.emoji:''}${deco.note?'，备注：'+deco.note:''}${count?'，'+count+'项日程':''}`);
+  const number=node('span','day-number',d.getDate());if(deco.color)number.style.color=deco.color;if(deco.bold)number.style.fontWeight='700';
+  day.append(node('span','day-emoji',deco.emoji||''),number);
+  const dots=node('span','dots');if(deco.dot)dots.append(node('i','dot manual'));for(let j=0;j<Math.min(count,3);j++)dots.append(node('i','dot event-dot'));if(deco.note)dots.append(node('i','note-mark'));
+  dots.setAttribute('aria-hidden','true');day.append(dots);
+  day.addEventListener('click',()=>{if(busy)return;if(multiMode)multiDates=multiDates.includes(k)?multiDates.filter(x=>x!==k):[...multiDates,k];else selected=k;render()});grid.append(day);
+ }
+ $('multiHint').classList.toggle('active',multiMode);$('multiBtn').textContent=multiMode?'退出多选':'多选日期';$('addBtn').textContent=multiMode?'＋ 批量添加日程':'＋ 添加日程';
+ $('clearMultiBtn').disabled=!multiDates.length;$('decorateBtn').disabled=multiMode;
+ if(multiMode)$('multiHint').textContent=`多选日期模式：已选 ${multiDates.length} 天。点击日期可选择或取消，选好后点「批量添加日程」。`;
+ $('selectedLabel').textContent=`${fmtLabel(selected)} · 日程`;
+ const note=prefs.decorations[selected]?.note||'';$('selectedNote').textContent=note;$('selectedNote').hidden=!note;
+ const list=events.filter(e=>e.date===selected).sort((a,b)=>a.title.localeCompare(b.title));$('eventCount').textContent=`${list.length} 项`;
+ const box=$('eventList');box.replaceChildren();
+ if(!list.length){box.append(node('div','empty','这一天没有日程'));return}
+ for(const e of list){
+  const el=node('article','event'),badge=node('div','datebadge'),body=node('div','eventbody'),actions=node('div','eventactions');
+  badge.append(node('strong','',Number(selected.split('-')[2])),node('span','',`${Number(selected.split('-')[1])}月`));
+  body.append(node('div','eventtitle',e.title),node('div','eventnote',e.note||''));
+  const edit=node('button','smallbtn edit','编辑'),del=node('button','smallbtn del','删除');edit.onclick=()=>openEvent(e);
+  del.onclick=()=>transaction(del,async()=>{if(await saveEvents(events.filter(x=>x.id!==e.id)))toast('已删除日程')});
+  actions.append(edit,del);body.append(actions);el.append(badge,body);box.append(el);
+ }
+}
+function openDialog(id,focus){
+ if(busy)return;lastFocus=document.activeElement;
+ for(const k of modalIds)$(k).classList.remove('open');
+ $(id).classList.add('open');document.body.classList.add('modal-open');
+ setTimeout(()=>{if($(id).classList.contains('open'))$(focus)?.focus()},0);
+}
+function closeDialog(id){if(busy)return;forceClose(id)}
+function forceClose(id){$(id).classList.remove('open');if(!modalIds.some(k=>$(k).classList.contains('open')))document.body.classList.remove('modal-open');if(lastFocus?.isConnected)lastFocus.focus()}
+async function transaction(button,fn){if(busy)return;busy=true;button.disabled=true;try{await fn()}catch(e){console.error('Calendar operation failed',e);toast('操作未完成，请重试；原存储未主动清空。')}finally{busy=false;button.disabled=false}}
+function openEvent(e=null){
+ if(multiMode&&!multiDates.length&&!e){toast('请先选择至少一个日期');return}
+ editId=e?.id||null;modalDates=e?[e.date]:(multiMode?[...multiDates].sort():[selected]);
+ $('modalTitle').textContent=e?'编辑日程':modalDates.length>1?'批量添加日程':'添加日程';$('eventDate').value=modalDates[0];
+ $('eventDateSummary').textContent=modalDates.length>1?`已选择 ${modalDates.length} 个日期：${modalDates.join('、')}`:modalDates[0];
+ $('eventName').value=e?.title||'';$('eventNote').value=e?.note||'';openDialog('modalWrap','eventName');
+}
+function openCaption(){$('captionInput').value=prefs.caption;$('captionError').textContent='';openDialog('captionWrap','captionInput')}
+let lastCaptionTap=0;
+$('caption').addEventListener('click',e=>{const now=Date.now();if(e.detail===0||now-lastCaptionTap<450){lastCaptionTap=0;openCaption()}else lastCaptionTap=now});
+$('caption').addEventListener('dblclick',()=>{if(!$('captionWrap').classList.contains('open'))openCaption()});
+$('saveCaptionBtn').onclick=()=>transaction($('saveCaptionBtn'),async()=>{
+ const text=$('captionInput').value.trim();if(length(text)>120){$('captionError').textContent='文案最多 120 字，请缩短后再保存。';return}
+ const next=clonePrefs();next.caption=text||DEFAULT_CAPTION;if(await savePrefs(next)){forceClose('captionWrap');toast('文案已保存')}
+});
+$('setDateBtn').onclick=()=>{const d=parseDate(prefs.manualDate||selected)||new Date();$('manualYear').value=d.getFullYear();$('manualMonth').value=d.getMonth()+1;$('manualDay').value=d.getDate();$('dateError').textContent='';openDialog('dateWrap','manualYear')};
+$('saveDateBtn').onclick=()=>transaction($('saveDateBtn'),async()=>{
+ const values=['manualYear','manualMonth','manualDay'].map(id=>$(id).value.trim());
+ if(values.some(v=>!/^\d+$/.test(v))){$('dateError').textContent='请填写完整的年、月、日（只填整数）。';return}
+ const [y,m,d]=values.map(Number),k=`${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+ const date=parseDate(k);if(!date){$('dateError').textContent='这个日期不存在，请检查年份（1–9999）、月份、天数或闰年。';return}
+ const next=clonePrefs();next.manualDate=k;if(await savePrefs(next)){selected=k;view=monthOf(date);multiMode=false;multiDates=[];render();forceClose('dateWrap');toast('已设置显示日期，不改变系统时间')}
+});
+async function followToday(){const next=clonePrefs();next.manualDate=null;if(await savePrefs(next)){today=dateKey(new Date());selected=today;view=monthOf(new Date());multiMode=false;multiDates=[];render();forceClose('dateWrap');toast('已恢复跟随现实日期')}}
+$('todayBtn').onclick=()=>transaction($('todayBtn'),followToday);$('followTodayBtn').onclick=()=>transaction($('followTodayBtn'),followToday);
+$('decorateBtn').onclick=()=>{
+ decorationTarget=selected;const d=prefs.decorations[selected]||{};$('decorationTitle').textContent=`装饰 ${fmtLabel(selected)}`;$('decorationDate').textContent=selected;
+ $('decorationEmoji').value=d.emoji||'';$('decorationDot').checked=!!d.dot;$('decorationBold').checked=!!d.bold;$('decorationUseColor').checked=!!d.color;$('decorationColor').value=d.color||'#8581a6';$('decorationColor').disabled=!d.color;$('decorationNote').value=d.note||'';$('decorationError').textContent='';openDialog('decorationWrap','decorationEmoji');
+};
+$('decorationUseColor').onchange=()=>{$('decorationColor').disabled=!$('decorationUseColor').checked};
+$('saveDecorationBtn').onclick=()=>transaction($('saveDecorationBtn'),async()=>{
+ const emoji=$('decorationEmoji').value.trim(),note=$('decorationNote').value.trim();
+ if(length(emoji)>16||length(note)>1000){$('decorationError').textContent='小标记最多 16 字，备注最多 1000 字。';return}
+ const d={emoji,note,dot:$('decorationDot').checked,bold:$('decorationBold').checked,color:$('decorationUseColor').checked?$('decorationColor').value:null},next=clonePrefs();
+ if(!emoji&&!note&&!d.dot&&!d.bold&&!d.color)delete next.decorations[decorationTarget];else next.decorations[decorationTarget]=d;
+ if(await savePrefs(next)){forceClose('decorationWrap');toast('日期装饰已保存')}
+});
+$('clearDecorationBtn').onclick=()=>transaction($('clearDecorationBtn'),async()=>{const next=clonePrefs();delete next.decorations[decorationTarget];if(await savePrefs(next)){forceClose('decorationWrap');toast('已清除这一天的装饰，日程保留')}});
+$('prevMonth').onclick=()=>{if(busy)return;view=makeDate(view.getFullYear(),view.getMonth()-1,1);render()};
+$('nextMonth').onclick=()=>{if(busy)return;view=makeDate(view.getFullYear(),view.getMonth()+1,1);render()};
+$('multiBtn').onclick=()=>{if(busy)return;multiMode=!multiMode;multiDates=[];render()};$('clearMultiBtn').onclick=()=>{if(busy)return;multiDates=[];render();toast('已清除日期选择')};
+$('addBtn').onclick=()=>openEvent();$('cancelBtn').onclick=()=>closeDialog('modalWrap');
+for(const id of modalIds)$(id).addEventListener('click',e=>{if(e.target===$(id))closeDialog(id)});
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeDialog(b.dataset.close));
+document.addEventListener('keydown',e=>{
+ const id=modalIds.find(k=>$(k).classList.contains('open'));if(!id)return;
+ if(e.key==='Escape'&&!e.isComposing){e.preventDefault();closeDialog(id)}
+ if(e.key==='Tab'){
+  const items=[...$(id).querySelectorAll('button:not(:disabled),input:not(:disabled):not([hidden]),textarea:not(:disabled)')].filter(el=>el.getClientRects().length);
+  const first=items[0],last=items[items.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+ }
+});
+$('saveBtn').onclick=()=>transaction($('saveBtn'),async()=>{
+ const title=$('eventName').value.trim(),note=$('eventNote').value.trim(),dates=[...modalDates];
+ if(!title||!dates.length||dates.some(d=>!parseDate(d))){toast('请填写日期和日程标题');return}
+ let next=events.map(e=>({...e}));
+ if(editId){const e=next.find(x=>x.id===editId);if(!e){toast('此日程已不存在，请重新打开');return}Object.assign(e,{title,note})}
+ else for(const date of dates)next.push({id:String(Date.now())+Math.random().toString(16).slice(2)+date,date,title,note,createdAt:Date.now()});
+ if(await saveEvents(next)){selected=dates[0];view=monthOf(parseDate(selected));multiMode=false;multiDates=[];render();forceClose('modalWrap');toast(dates.length>1?`已添加 ${dates.length} 个日期的日程`:'日程已保存')}
+});
+$('themeBtn').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'};
+$('dismissRemind').onclick=()=>{$('remindWrap').classList.remove('show')};
+async function checkDailyReminders(){
+ const realToday=dateKey(new Date()),due=events.filter(e=>e.date===realToday);if(!due.length)return;
+ let last='';try{last=(await window.rain?.storage?.get?.(REMIND_KEY))||''}catch{}if(!last){try{last=localStorage.getItem(REMIND_KEY)||''}catch{}}
+ if(last===realToday)return;
+ try{await window.rain?.storage?.set?.(REMIND_KEY,realToday)}catch{}try{localStorage.setItem(REMIND_KEY,realToday)}catch{}
+ const p=node('p','',due.map(e=>`• ${e.title}${e.note?'：'+e.note:''}`).join('\n'));p.style.whiteSpace='pre-wrap';$('remindText').replaceChildren(p);$('remindWrap').classList.add('show');
+}
+function refreshRealDate(){
+ const real=dateKey(new Date());if(real===today)return;const old=today;today=real;
+ if(!prefs.manualDate&&selected===old){selected=real;view=monthOf(new Date())}render();checkDailyReminders();
+}
+async function init(){
+ try{if(window.rain?.theme)document.documentElement.dataset.theme=window.rain.theme();window.rain?.onTheme?.(t=>document.documentElement.dataset.theme=t)}catch{}
+ events=await readData(EVENT_KEY,validEvents,[]);prefs=normalizePrefs(await readData(PREF_KEY,validPrefs,defaults()));
+ if(prefs.manualDate){selected=prefs.manualDate;view=monthOf(parseDate(selected))}
+ render();await checkDailyReminders();document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshRealDate()});setInterval(refreshRealDate,30000);
+ document.documentElement.dataset.calendarReady='true';
+}
+init().catch(e=>{console.error(e);toast('日历初始化失败，请刷新页面重试。')});
+})();
+</script>
+</body></html>
