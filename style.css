@@ -8,6 +8,9 @@
 #home{background-color:var(--home-bg);background-image:var(--home-wallpaper);background-position:center 62%;background-size:cover;background-repeat:no-repeat;padding:calc(65px + env(safe-area-inset-top,0px)) 28px calc(35px + env(safe-area-inset-bottom,0px));overflow-y:auto}
 #home[data-home-background="solid"]{background-image:none}
 #home::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(180deg,rgba(224,237,248,.72) 0%,rgba(224,237,248,.35) 28%,transparent 55%,rgba(30,55,80,.18) 100%);pointer-events:none}
+/* 白色天空已写入壁纸；默认壁纸不再叠加染色滤层。纯色模式保持原样。 */
+#home:not([data-home-background="solid"]){--home-bg:#fff;--home-wallpaper:url("snowfall-assets/home-wallpaper-snowline-white.png")}
+#home:not([data-home-background="solid"])::before{background:none}
 #home>*{position:relative;z-index:1}
 .eyebrow{font-size:9px!important;letter-spacing:3px;color:var(--ice-muted)}
 .home-top p{margin:0;color:var(--ice-muted);font-size:12px;text-shadow:0 1px 4px rgba(255,255,255,.6)}
