@@ -52,10 +52,13 @@ try{const v=JSON.parse(localStorage.getItem(BEAUTY_KEY));if(v&&typeof v==='objec
 function persist(key,value,statusId){try{localStorage.setItem(key,JSON.stringify(value));return true}catch{$(statusId).textContent='保存失败：浏览器存储空间不足或不允许保存，请先保留重要内容。';return false}}
 function applyBeauty(){
   $('homeTitle').textContent=beauty.title;$('homeSubtitle').textContent=beauty.subtitle;
+  const home=$('home');
   const wallpaper=beauty.bg==='wallpaper';
-  document.documentElement.style.setProperty('--home-bg',wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff'));
-  if(wallpaper) document.documentElement.style.removeProperty('--home-wallpaper');
-  else document.documentElement.style.setProperty('--home-wallpaper','none');
+  const solidBg=/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#dfe8f4';
+  // 壁纸资源由首页样式统一管理；仅在纯色模式覆盖首页背景。
+  home.dataset.homeBackground=wallpaper?'wallpaper':'solid';
+  if(wallpaper) home.style.removeProperty('--home-bg');
+  else home.style.setProperty('--home-bg',solidBg);
   document.documentElement.style.setProperty('--icon-bg',/^#[0-9a-f]{6}$/i.test(beauty.icon)?beauty.icon:'#eeeeee');
   document.documentElement.style.setProperty('--reading-size',['14','16','18'].includes(beauty.size)?beauty.size+'px':'16px');
   $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');$('beautyWallpaper').checked=wallpaper;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;

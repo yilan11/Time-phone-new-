@@ -1,5 +1,5 @@
 /* 只限定独立 HTML 容器，避免改变其他应用和桌面。 */
 #app-notes .html-app-frame{display:block;flex:1 1 0;min-height:0;width:100%;border:0;background:#faf9f6}
-#app-notes .html-app-header{min-height:58px}
+/* 应用顶栏由 style.css 的共享规格控制。 */
 #app-tarot .html-app-frame{display:block;flex:1 1 0;min-height:0;width:100%;border:0;background:#f8f7fc}
-#app-tarot .html-app-header{min-height:58px;flex-shrink:0}
+/* Notes 和 Tarot 使用相同的外层顶栏，不单独设置高度。 */
