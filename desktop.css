@@ -45,8 +45,8 @@
 .widget-editor-actions{display:grid;gap:6px}
 .widget-form button{min-height:44px;padding:8px 14px;border:1px solid var(--ice-200);border-radius:12px;background:var(--ice-50);color:var(--ice-text);font-size:14px;touch-action:manipulation}
 .widget-form button.widget-primary{background:var(--ice-text);border-color:var(--ice-text);color:#fff;font-weight:600}
-/* 图标按所在网格的宽高缩放，给名称留出空间。 */
-#home .desktop-app>span:first-child{height:auto;width:min(88cqw,calc(100cqh - 21px),72px);border-radius:24%;font-size:24px}
+/* 仅将桌面和 Dock 的图标缩至原宽高的一半，保留名称与整格点击区域。 */
+#home .desktop-app>span:first-child{height:auto;width:min(44cqw,calc(50cqh - 10.5px),36px);border-radius:24%;font-size:12px}
 #home .desktop-app{container-type:size;font-size:11px;gap:5px;padding:2px 0;line-height:1.2}
 #home.desktop-home{gap:5px;padding-left:12px;padding-right:12px}
 #home .desktop-toolbar{position:absolute;top:calc(39px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:5;pointer-events:none}
@@ -64,7 +64,7 @@
 .app-placeholder>span{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;background:var(--ice-glass)}
 .app-placeholder svg{width:42px;height:42px;fill:none;stroke:var(--ice-300);stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
 .app-placeholder h2{font-size:22px;font-weight:500;margin:22px 0 0}.app-placeholder p{font-size:13px;line-height:1.8}.app-placeholder button{margin-top:20px;border:1px solid var(--ice-border);border-radius:20px;background:var(--ice-50);padding:10px 22px;color:var(--ice-text)}
-@media(max-height:650px){.desktop-dock{height:76px}#home .desktop-hint{font-size:8px}#home .desktop-app{font-size:10px;gap:3px}#home .desktop-app>span:first-child{width:min(88cqw,calc(100cqh - 19px),64px)}}
+@media(max-height:650px){.desktop-dock{height:76px}#home .desktop-hint{font-size:8px}#home .desktop-app{font-size:10px;gap:3px}#home .desktop-app>span:first-child{width:min(44cqw,calc(50cqh - 9.5px),32px)}}
 #home .desktop-item[hidden],#home .app-grid[hidden],#home .home-note[hidden]{display:none!important}
 #home.desktop-home{padding:calc(44px + env(safe-area-inset-top,0px)) 10px calc(28px + env(safe-area-inset-bottom,0px));overflow:hidden;gap:8px}
 .desktop-toolbar{height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px}.desktop-toolbar button{border:1px solid var(--ice-border);background:var(--ice-50);color:var(--ice-text);border-radius:24px;padding:8px 16px;font-size:12px}.desktop-toolbar .desktop-done{font-size:22px;padding:1px 14px}.desktop-hint{font-size:10px;color:var(--ice-muted);margin:0;min-height:15px;text-align:center}
