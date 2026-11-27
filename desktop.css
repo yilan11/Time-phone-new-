@@ -152,7 +152,7 @@
 .widget-more>summary{padding:12px 0;font-size:14px;font-weight:600;cursor:pointer}
 .widget-more[open]>summary{border-bottom:1px solid var(--ice-border);margin-bottom:10px}
 .widget-more>.widget-look{border:0;padding:0 0 12px;margin:0}
-.widget-editor-actions{position:sticky;bottom:-16px;z-index:2;margin:0 -16px -16px;padding:10px 16px 16px;border-top:1px solid var(--ice-border);border-radius:0 0 20px 20px;background:#fffffff2;display:flex;flex-wrap:wrap;gap:8px}
+.widget-editor-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
 .widget-editor-actions>button{flex:1 1 auto;min-width:0}
 .widget-editor-actions>.widget-primary{flex:1 1 100%}
 
