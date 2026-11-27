@@ -103,31 +103,58 @@
 .widget-look textarea{font-family:monospace}
 .widget-style-preview{display:grid;align-content:center;gap:3px;min-height:78px;padding:12px;border:1px solid var(--ice-border);border-radius:12px;overflow:hidden;background:var(--ice-100);color:var(--ice-text);font-size:13px}
 .widget-style-preview small{font-size:11px}
-:is(#home .desktop-item,.widget-style-preview)[data-widget-look=glass]{color:#253b59;background:linear-gradient(145deg,#fff9,#e6f3ff42 54%,#fff7);border:1px solid #fffd;border-radius:14px;box-shadow:inset 0 1px 1px #fff,inset 0 -2px 5px #ffffff80;-webkit-backdrop-filter:blur(14px) saturate(145%);backdrop-filter:blur(14px) saturate(145%)}
-:is(#home .desktop-item,.widget-style-preview)[data-widget-look=white]{color:#25354a;background:#fff;border:1px solid #dce4ee;border-radius:14px}
-:is(#home .desktop-item,.widget-style-preview)[data-widget-look=paper]{color:#604722;background:repeating-linear-gradient(180deg,#fff6d9 0 19px,#e8cca4 19px 20px);border:1px solid #dfc49f;border-radius:9px}
-:is(#home .desktop-item,.widget-style-preview)[data-widget-look=custom]{color:var(--ice-text);background:#edf4fa center / cover no-repeat;border:1px solid var(--ice-border);border-radius:14px}
+:is(#home .desktop-item,.widget-style-preview,.widget-live .desktop-item)[data-widget-look=glass]{color:#253b59;background:linear-gradient(145deg,#fff9,#e6f3ff42 54%,#fff7);border:1px solid #fffd;border-radius:14px;box-shadow:inset 0 1px 1px #fff,inset 0 -2px 5px #ffffff80;-webkit-backdrop-filter:blur(14px) saturate(145%);backdrop-filter:blur(14px) saturate(145%)}
+:is(#home .desktop-item,.widget-style-preview,.widget-live .desktop-item)[data-widget-look=white]{color:#25354a;background:#fff;border:1px solid #dce4ee;border-radius:14px}
+:is(#home .desktop-item,.widget-style-preview,.widget-live .desktop-item)[data-widget-look=paper]{color:#604722;background:repeating-linear-gradient(180deg,#fff6d9 0 19px,#e8cca4 19px 20px);border:1px solid #dfc49f;border-radius:9px}
+:is(#home .desktop-item,.widget-style-preview,.widget-live .desktop-item)[data-widget-look=custom]{color:var(--ice-text);background:#edf4fa center / cover no-repeat;border:1px solid var(--ice-border);border-radius:14px}
 #home .desktop-item[data-widget-look] :is(h1,.eyebrow,#homeDate,.mini-week,.snow-widget-kicker,.snow-widget-main,.snow-widget-sub,#homeTitle,#homeSubtitle){color:inherit}
 #home .snow-photo[data-widget-look] > .snow-widget-image{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;padding:9px;object-fit:contain}
 
-/* 大字使用自己的外观；透明模式直接露出桌面壁纸。 */
+/* 大字：无背景；左上、右下角线就是组件边界；文字在色块里从上往下竖排。 */
 .snow-bigtext,#home .desktop-item.snow-bigtext{
- display:grid;place-items:center;container-type:size;box-sizing:border-box;min-width:0;min-height:0;
- padding:0;overflow:hidden;border:0;border-radius:14px;box-shadow:none;backdrop-filter:none;
- background:var(--bigtext-bg,transparent) center/cover no-repeat;
+ position:relative;container-type:size;box-sizing:border-box;min-width:0;min-height:0;
+ padding:0;overflow:hidden;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;background:transparent;
+ color:var(--bigtext-ink,#3b4a52);
 }
-.snow-bigtext.desktop-ghost{background:var(--bigtext-bg,transparent) center/cover no-repeat!important}
+.snow-bigtext.desktop-ghost{background:transparent!important;box-shadow:none!important}
+.snow-bigtext-corner{position:absolute;pointer-events:none;width:46%;height:min(30%,40cqw);border:2px solid #6b6b6b}
+.snow-bigtext-corner.is-top{top:0;left:0;border-right:0;border-bottom:0}
+.snow-bigtext-corner.is-bottom{right:0;bottom:0;width:53%;border-left:0;border-top:0}
+.snow-bigtext-block{
+ position:absolute;top:9%;bottom:11%;left:12%;right:14%;display:flex;align-items:center;justify-content:center;
+ overflow:hidden;background:var(--bigtext-panel,#b9dce4);
+}
 .snow-widget-bigtext-content{
- box-sizing:border-box;width:100%;max-height:100%;padding:0 clamp(3px,5cqw,12px);
- overflow:hidden;overflow-wrap:anywhere;white-space:pre-wrap;text-align:center;
- font-size:clamp(13px,min(19cqw,29cqh),48px);font-weight:700;line-height:1.16;
+ box-sizing:border-box;max-width:100%;max-height:100%;padding:8% 6%;overflow:hidden;
+ writing-mode:vertical-rl;text-orientation:upright;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;
+ font-size:clamp(11px,min(13cqw,9cqh),30px);font-weight:500;line-height:1.5;letter-spacing:.12em;
 }
-.snow-widget-bigtext-content[data-density=medium]{font-size:clamp(9px,min(11cqw,17cqh),30px)}
-.snow-widget-bigtext-content[data-density=long]{font-size:clamp(7px,min(7.5cqw,11cqh),21px)}
-.widget-bigtext-look .widget-form-field[hidden]{display:none}
+.snow-widget-bigtext-content[data-density=medium]{font-size:clamp(9px,min(10cqw,6.5cqh),22px)}
+.snow-widget-bigtext-content[data-density=long]{font-size:clamp(8px,min(7cqw,4.6cqh),16px)}
 .widget-bigtext-look input[type=color]{width:52px;height:44px;padding:4px;cursor:pointer}
-.widget-bigtext-preview-area{display:grid;gap:5px;justify-items:center}
-.widget-bigtext-preview-area>.snow-bigtext{width:min(100%,170px);height:154px;outline:1px dashed var(--ice-border);outline-offset:-1px}
+
+/* 编辑总界面：实时预览 + 行内尺寸 + 收起的外观设置。 */
+.widget-live{display:grid;justify-items:center;gap:6px;padding:14px 8px 8px;border-radius:14px;background:repeating-conic-gradient(#eef3f8 0 25%,#f8fbfd 0 50%) 0 0/16px 16px}
+.widget-live-box{position:relative;overflow:visible}
+.widget-live-box>.desktop-item{position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none}
+.widget-live-empty{display:grid;place-items:center;width:100%;height:100%;color:var(--ice-muted);font-size:12px}
+.widget-live-note{text-align:center}
+.widget-choice{cursor:pointer}
+.widget-choice-thumb{flex:0 0 84px;height:84px;padding:4px;box-sizing:border-box;place-content:center;border-radius:12px}
+.widget-choice-thumb .widget-live-note{display:none}
+.widget-choice-info{flex:1;min-width:0}
+.widget-size-inline .widget-size-option{flex-basis:78px}
+.widget-size-inline .widget-size-tile{width:48px;height:56px}
+.widget-size-option.is-on{background:var(--ice-100);border-color:var(--ice-300);font-weight:600}
+.widget-size-plus{font-size:22px;color:#526d82}
+.widget-size-axes[hidden]{display:none}
+.widget-more{border:1px solid var(--ice-border);border-radius:12px;background:#ffffffa8;padding:0 12px}
+.widget-more>summary{padding:12px 0;font-size:14px;font-weight:600;cursor:pointer}
+.widget-more[open]>summary{border-bottom:1px solid var(--ice-border);margin-bottom:10px}
+.widget-more>.widget-look{border:0;padding:0 0 12px;margin:0}
+.widget-editor-actions{position:sticky;bottom:-16px;z-index:2;margin:0 -16px -16px;padding:10px 16px 16px;border-top:1px solid var(--ice-border);border-radius:0 0 20px 20px;background:#fffffff2;display:flex;flex-wrap:wrap;gap:8px}
+.widget-editor-actions>button{flex:1 1 auto;min-width:0}
+.widget-editor-actions>.widget-primary{flex:1 1 100%}
 
 /* 蓝色面板：内容随网格缩放，角线与圆点留在面板边缘。 */
 .snow-panel,#home .desktop-item.snow-panel{

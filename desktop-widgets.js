@@ -12,66 +12,6 @@ window.snowfallWidgetUI=(()=>{
  const sizeLabel=i=>`${i.w}×${i.h}`;
  const isPreset=({w,h})=>sizes.some(([x,y])=>x===w&&y===h);
 
- function createSizeForm(def,selected,{cols,rows,validSize,prefix},onSave,onBack){
-  const form=text('form','widget-form widget-size-form'),title=text('h2','',`${def.name}尺寸`),top=text('div','widget-editor-top');
-  title.tabIndex=-1;top.append(title,text('p','','左右滑动浏览尺寸预设，点选后保存；也可以填写自定义尺寸。'));
-  const field=text('fieldset','widget-size-field'),legend=text('legend','','尺寸（列 × 行）'),choices=text('div','widget-size-choices');
-  const help=text('p','widget-size-note',`列数 1–${cols}，行数 1–${rows}，均为整数。`);
-  const feedback=text('p','widget-size-feedback');feedback.id=prefix+'SizeFeedback';feedback.setAttribute('role','status');
-  help.id=prefix+'SizeHelp';field.setAttribute('aria-describedby',help.id);
-  function message(value='',invalid=false){feedback.textContent=value;feedback.classList.toggle('is-error',invalid);}
-  function confirm(size){onSave(size);message(`尺寸已保存为 ${sizeLabel(size)}，可返回编辑组件。`);}
-  function radio(value,checked){const input=text('input');input.type='radio';input.name='widget-size';input.value=value;input.checked=checked;return input;}
-  const presets=[];
-  for(const [w,h] of sizes){
-   if(!validSize(w,h))continue;
-   const size={w,h},label=text('label','widget-size-option'),input=radio(sizeLabel(size),same(size,selected));
-   const tile=text('span','widget-size-tile'),shape=text('span','widget-size-shape'),caption=text('span','widget-size-caption');
-   tile.setAttribute('aria-hidden','true');shape.style.setProperty('--widget-cols',w);shape.style.setProperty('--widget-rows',h);tile.append(shape);
-   caption.append(input,text('span','',sizeLabel(size)));label.append(tile,caption);choices.append(label);presets.push({input,size,label});
-  }
-  const custom=text('div','widget-size-custom'),choice=text('label','widget-size-custom-choice');
-  const customRadio=radio('custom',!isPreset(selected)),axes=text('div','widget-size-axes');
-  choice.append(customRadio,text('span','','自定义'));
-  function clearFeedback(){message();for(const axis of axes.querySelectorAll('input'))axis.removeAttribute('aria-invalid');}
-  function integerField(caption,value){
-   const label=text('label','widget-size-axis'),input=text('input');
-   // 文本框配数字键盘：不让 number 输入框接受指数或小数。
-   input.type='text';input.inputMode='numeric';input.pattern='[0-9]+';input.autocomplete='off';input.placeholder='—';input.value=value;
-   input.setAttribute('aria-describedby',`${help.id} ${feedback.id}`);
-   function reject(){
-    customRadio.checked=true;input.value='';clearFeedback();input.setAttribute('aria-invalid','true');message(`${caption}只能填写整数。`,true);
-   }
-   input.addEventListener('beforeinput',e=>{if(e.cancelable&&e.data&&!/^\d+$/.test(e.data)){e.preventDefault();reject();}});
-   input.addEventListener('input',()=>{
-    customRadio.checked=true;clearFeedback();if(!/^\d*$/.test(input.value))reject();
-   });
-   label.append(text('span','',caption),input);axes.append(label);return input;
-  }
-  const width=integerField('列数',customRadio.checked?selected.w:''),height=integerField('行数',customRadio.checked?selected.h:'');
-  axes.insertBefore(text('span','widget-size-times','×'),height.parentElement).setAttribute('aria-hidden','true');
-  custom.append(choice,axes);field.append(legend,choices,custom,help);
-  field.addEventListener('change',e=>{if(e.target.type==='radio')clearFeedback();});
-  const actions=text('div','widget-editor-actions'),submit=text('button','widget-primary','保存');submit.type='submit';
-  actions.append(submit,button('返回编辑组件',onBack));
-  form.noValidate=true;form.append(top,field,feedback,actions,text('p','widget-size-note widget-size-foot','未保存的尺寸改动不会带回编辑页。'));
-  form.addEventListener('submit',e=>{
-   e.preventDefault();clearFeedback();
-   if(!customRadio.checked){const preset=presets.find(({input})=>input.checked);if(preset)confirm(preset.size);return;}
-   function read(input,caption,max){
-    const value=Number(input.value);
-    if(/^\d+$/.test(input.value)&&Number.isInteger(value)&&value>=1&&value<=max)return value;
-    input.setAttribute('aria-invalid','true');message(`${caption}请输入 1–${max} 的整数。`,true);input.focus();return null;
-   }
-   const w=read(width,'列数',cols);if(w===null)return;
-   const h=read(height,'行数',rows);if(h===null)return;
-   if(validSize(w,h))confirm({w,h});
-  });
-  return {form,title,revealSelected(){
-   const active=presets.find(({input})=>input.checked);
-   if(active)choices.scrollLeft=active.label.offsetLeft-choices.offsetLeft;
-  }};
- }
  function localDate(value){
   if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
   const date=new Date(`${value}T00:00:00Z`);
@@ -80,8 +20,7 @@ window.snowfallWidgetUI=(()=>{
  const looks=new Map([['default','原样式'],['glass','液态玻璃背景'],['white','纯白背景'],['paper','便签背景'],['custom','自定义风格']]);
  const maxBG=200000,maxCSS=4000;
  const bgValid=value=>photoValid(value)&&value.length<=maxBG;
- const bigTextLimit=120,bigTextColor='#25354a',bigTextBGColor='#edf4fa';
- const bigTextLooks=new Map([['default','透明背景'],['solid','纯色背景'],['image','图片背景']]);
+ const bigTextLimit=120,bigTextColor='#3b4a52',bigTextPanel='#b9dce4',bigTextSample='把今天写成一行诗';
  const validColor=value=>typeof value==='string'&&/^#[a-f\d]{6}$/i.test(value);
  const visualProps=new Set(('background background-color background-image background-size background-position background-repeat '+
   'color border border-color border-width border-style border-radius box-shadow text-shadow font-size font-weight font-family letter-spacing '+
@@ -122,11 +61,8 @@ window.snowfallWidgetUI=(()=>{
   if(id==='bigtext'){
    result.text=typeof value.text==='string'?value.text.slice(0,bigTextLimit).replace(/[\uD800-\uDBFF]$/u,''):'';
    result.textColor=validColor(value.textColor)?value.textColor:bigTextColor;
-   if(value.backgroundMode==='solid'){
-    result.backgroundMode='solid';result.backgroundColor=validColor(value.backgroundColor)?value.backgroundColor:bigTextBGColor;
-   }else if(value.backgroundMode==='image'&&bgValid(value.backgroundImage)){
-    result.backgroundMode='image';result.backgroundImage=value.backgroundImage;
-   }
+   // 旧版的“纯色背景”颜色沿用为色块颜色。
+   result.panelColor=validColor(value.panelColor)?value.panelColor:value.backgroundMode==='solid'&&validColor(value.backgroundColor)?value.backgroundColor:bigTextPanel;
    return result;
   }
   if(id==='memo')result.text=typeof value.text==='string'?value.text.slice(0,500):'';
@@ -161,20 +97,22 @@ window.snowfallWidgetUI=(()=>{
    }
    appliedLooks.set(node,{look,props});
   }
+  // 大字：没有背景，左上/右下角线贴着组件边界，文字在色块里从上往下竖排。
   function createBigTextCard(){
-   const node=text('div','snow-widget-card snow-bigtext'),content=text('strong','snow-widget-bigtext-content');
-   node.append(content);
+   const node=text('div','snow-widget-card snow-bigtext'),block=text('div','snow-bigtext-block'),content=text('strong','snow-widget-bigtext-content');
+   for(const className of ['snow-bigtext-corner is-top','snow-bigtext-corner is-bottom']){
+    const corner=text('span',className);corner.setAttribute('aria-hidden','true');node.append(corner);
+   }
+   block.append(content);node.append(block);
    return {node,draw(settings){
     const value=clean('bigtext',settings),message=value.text;
     if(content.textContent!==message){
      content.textContent=message;
-     const length=message.length+6*(message.split('\n').length-1);
-     content.dataset.density=length>60?'long':length>18?'medium':'short';
+     const length=message.length+4*(message.split('\n').length-1);
+     content.dataset.density=length>40?'long':length>12?'medium':'short';
     }
-    node.style.color=value.textColor;
-    if(value.backgroundMode==='solid')node.style.setProperty('--bigtext-bg',value.backgroundColor);
-    else if(value.backgroundMode==='image')node.style.setProperty('--bigtext-bg',`url("${value.backgroundImage}")`);
-    else node.style.removeProperty('--bigtext-bg');
+    node.style.setProperty('--bigtext-ink',value.textColor);
+    node.style.setProperty('--bigtext-panel',value.panelColor);
    }};
   }
    function createPanelCard(){
@@ -244,56 +182,23 @@ window.snowfallWidgetUI=(()=>{
    throw Error('照片压缩失败。');
   }finally{URL.revokeObjectURL(url);}
  }
- function mountBigText(draft,form,labelField,isCurrent,setBusy){
-  const content=text('textarea'),ink=text('input'),mode=text('select'),fill=text('input'),image=text('input');
-  const appearance=text('fieldset','widget-look widget-bigtext-look'),imageFields=text('div','widget-look-custom');
-  const previewArea=text('div','widget-bigtext-preview-area'),preview=createBigTextCard();
-  const imageStatus=text('p','widget-size-note');imageStatus.setAttribute('role','status');
-  content.maxLength=bigTextLimit;content.rows=3;content.value=draft.text||'';content.placeholder='输入想显示在桌面上的文字…';
-  ink.type=fill.type='color';ink.value=draft.textColor||bigTextColor;fill.value=draft.backgroundColor||bigTextBGColor;
-  image.type='file';image.accept='image/*';
-  for(const [value,label] of bigTextLooks){const option=text('option','',label);option.value=value;mode.append(option);}
-  mode.value=draft.backgroundMode||'default';
-  let turn=0;
-  function resetUpload(){
-   turn++;image.value='';setBusy(false);
-   remove.disabled=!draft.backgroundImage;
-   imageStatus.textContent=draft.backgroundImage?'已设置背景图片':'未选择图片时显示透明背景';
-  }
-  function update(){
-   draft.text=content.value;draft.textColor=ink.value;draft.backgroundMode=mode.value;draft.backgroundColor=fill.value;
-   fill.parentElement.hidden=mode.value!=='solid';imageFields.hidden=mode.value!=='image';
-   preview.draw({...draft,text:draft.text.trim()?draft.text:'大字预览'});
-  }
-  const remove=button('移除背景图片',()=>{
-   delete draft.backgroundImage;mode.value='default';resetUpload();update();mode.focus();
-  });
-  image.addEventListener('change',async()=>{
-   const file=image.files[0];if(!file)return;
-   const reading=++turn;setBusy(true);remove.disabled=false;imageStatus.textContent='正在读取背景图片…';
-   try{
-    const src=await importPhoto(file,bgValid);if(!isCurrent()||reading!==turn)return;
-    draft.backgroundImage=src;imageStatus.textContent='已设置背景图片';update();
-   }catch(err){
-    if(isCurrent()&&reading===turn)imageStatus.textContent=`${err.message||'无法读取背景图片。'} ${draft.backgroundImage?'原背景未更改。':'未选择图片时显示透明背景。'}`;
-   }finally{
-    if(isCurrent()&&reading===turn){image.value='';remove.disabled=!draft.backgroundImage;setBusy(false);}
-   }
-  });
+ function mountBigText(draft,form,labelField,redraw){
+  Object.assign(draft,clean('bigtext',draft));
+  const content=text('textarea'),ink=text('input'),fill=text('input'),fields=text('fieldset','widget-look widget-bigtext-look');
+  content.maxLength=bigTextLimit;content.rows=3;content.value=draft.text||'';content.placeholder=`例如：${bigTextSample}`;
+  ink.type=fill.type='color';ink.value=draft.textColor;fill.value=draft.panelColor;
+  function update(){draft.text=content.value;draft.textColor=ink.value;draft.panelColor=fill.value;redraw();}
   for(const input of [content,ink,fill])input.addEventListener('input',update);
-  mode.addEventListener('change',()=>{if(mode.value!=='image')resetUpload();update();});
-  labelField(`大字内容（最多 ${bigTextLimit} 字）`,content);
-  appearance.append(text('legend','','大字外观'));
-  labelField('文字颜色',ink,appearance);labelField('背景模式',mode,appearance);labelField('背景颜色',fill,appearance);
-  labelField('选择背景图片（仅保存在本机）',image,imageFields);imageFields.append(imageStatus,remove);
-  previewArea.append(text('p','widget-size-note','实时预览'),preview.node);
-  appearance.append(imageFields,previewArea);form.append(appearance);resetUpload();update();
+  labelField(`文字内容（最多 ${bigTextLimit} 字，回车换列）`,content);
+  fields.append(text('legend','','颜色'));
+  labelField('色块颜色',fill,fields);labelField('文字颜色',ink,fields);
+  form.append(fields);
  }
- function mountPanel(draft,form,labelField,isCurrent,setBusy){
+ function mountPanel(draft,form,labelField,isCurrent,setBusy,redraw){
   Object.assign(draft,clean('panel',draft));
   const fields=text('fieldset','widget-look widget-panel-fields');
   const message=text('textarea'),color=text('input'),image=text('input');
-  const status=text('p','widget-size-note'),previewArea=text('div','widget-panel-preview'),preview=createPanelCard();
+  const status=text('p','widget-size-note');
   status.setAttribute('role','status');
   message.maxLength=panelTextLimit;message.rows=3;message.value=draft.text;message.placeholder='输入想显示在面板上的文字…';
   color.type='color';color.value=draft.panelColor;
@@ -301,7 +206,7 @@ window.snowfallWidgetUI=(()=>{
   let turn=0;
   const reset=button('恢复默认头像',()=>{
    turn++;image.value='';draft.avatarSrc=panelAvatar;setBusy(false);
-   status.textContent='正在使用默认头像';preview.draw(draft);image.focus();reset.disabled=true;
+   status.textContent='正在使用默认头像';redraw();image.focus();reset.disabled=true;
   });
   const hasCustomAvatar=()=>draft.avatarSrc!==panelAvatar;
   status.textContent=hasCustomAvatar()?'已设置自选头像':'正在使用默认头像';
@@ -311,23 +216,22 @@ window.snowfallWidgetUI=(()=>{
    const reading=++turn;setBusy(true);reset.disabled=false;status.textContent='正在读取头像…';
    try{
     const src=await importPhoto(file,panelAvatarValid);if(!isCurrent()||reading!==turn)return;
-    draft.avatarSrc=src;status.textContent='已设置自选头像';preview.draw(draft);
+    draft.avatarSrc=src;status.textContent='已设置自选头像';redraw();
    }catch(err){
     if(isCurrent()&&reading===turn)status.textContent=`${err.message||'无法读取头像。'} 原头像未更改。`;
    }finally{
     if(isCurrent()&&reading===turn){image.value='';reset.disabled=!hasCustomAvatar();setBusy(false);}
    }
   });
-  function update(){draft.text=message.value;draft.panelColor=color.value;preview.draw(draft);}
+  function update(){draft.text=message.value;draft.panelColor=color.value;redraw();}
   message.addEventListener('input',update);color.addEventListener('input',update);color.addEventListener('change',update);
   fields.append(text('legend','','面板设置'));
   labelField(`面板文字（最多 ${panelTextLimit} 字）`,message,fields);
   labelField('面板颜色',color,fields);
   labelField('选择头像（仅保存在本机）',image,fields);
-  previewArea.append(text('p','widget-size-note','实时预览'),preview.node);
-  fields.append(status,reset,previewArea);form.append(fields);update();
+  fields.append(status,reset);form.append(fields);update();
  }
- function mount({defs,cols,rows,validSize,list,getItem,isRemoved,canSave,createInstance,updateInstance,restoreInstance,removeInstance,returnHome,view='app-widgets',prefix='widget'}){
+ function mount({defs,cols,rows,validSize,list,getItem,isRemoved,canSave,createInstance,updateInstance,restoreInstance,removeInstance,returnHome,makePreview=()=>null,cellSize=()=>({w:80,h:80,gap:3}),view='app-widgets',prefix='widget'}){
   const field=name=>document.getElementById(prefix+name);
   const catalog=field('Catalog'),editor=field('Editor'),tip=field('Intro');
   const status=field('Status'),back=document.querySelector(`#${view} header .back`),cards=new Map();
@@ -366,6 +270,59 @@ window.snowfallWidgetUI=(()=>{
    if(!stepBack||scroll.hidden)return;
    e.stopImmediatePropagation();stepBack();
   },true);
+  // 实时预览：按桌面格子的真实比例画出小组件，再整体缩小放进编辑页。
+  function liveStage(id,maxW=280,maxH=240){
+   const stage=text('div','widget-live'),box=text('div','widget-live-box'),card=makePreview(id);
+   stage.append(box);
+   if(card){card.node.classList.add('desktop-item');card.node.setAttribute('aria-hidden','true');card.node.inert=true;box.append(card.node);}
+   else box.append(text('span','widget-live-empty','暂无预览'));
+   return {stage,card,show(size,settings,look){
+    const cell=cellSize(),W=size.w*cell.w+(size.w-1)*cell.gap,H=size.h*cell.h+(size.h-1)*cell.gap;
+    const room=Math.min(maxW,stage.clientWidth?stage.clientWidth-16:maxW),scale=Math.min(1.4,Math.max(40,room)/W,maxH/H);
+    box.style.width=`${Math.round(W*scale)}px`;box.style.height=`${Math.round(H*scale)}px`;
+    if(!card)return;
+    Object.assign(card.node.style,{width:`${W}px`,height:`${H}px`,transform:`scale(${scale})`});
+    try{card.draw?.(settings,new Date());applyLook(card.node,look);}catch{}
+   }};
+  }
+  // 尺寸直接在编辑页里点选，不再单独跳一页。
+  function sizePicker(selected,onPick){
+   const field=text('fieldset','widget-size-field widget-size-inline'),choices=text('div','widget-size-choices');
+   field.append(text('legend','','尺寸（列 × 行）'),choices);
+   const group=`${prefix}Size${ticket}`,options=[];
+   function pick(size,input){for(const o of options)o.classList.toggle('is-on',o.querySelector('input')===input);onPick(size);}
+   function chip(label,size){
+    const option=text('label','widget-size-option'),input=text('input'),shape=text('span','widget-size-shape');
+    input.type='radio';input.name=group;
+    if(size){shape.style.setProperty('--widget-cols',size.w);shape.style.setProperty('--widget-rows',size.h);}
+    option.append(text('span','widget-size-tile'),text('span','widget-size-caption'));
+    option.firstChild.append(size?shape:text('span','widget-size-plus','＋'));
+    option.lastChild.append(input,text('span','',label));choices.append(option);options.push(option);return input;
+   }
+   for(const [w,h] of sizes){
+    if(!validSize(w,h))continue;
+    const size={w,h},input=chip(sizeLabel(size),size);
+    input.checked=same(size,selected);input.addEventListener('change',()=>{axes.hidden=true;pick(size,input);});
+   }
+   const customInput=chip('自定义',null),axes=text('div','widget-size-axes');
+   const num=(caption,value,max)=>{
+    const label=text('label','widget-size-axis'),input=text('input');
+    input.type='text';input.inputMode='numeric';input.autocomplete='off';input.value=value;input.placeholder=`1–${max}`;
+    input.addEventListener('input',()=>{
+     input.value=input.value.replace(/\D/g,'').slice(0,2);
+     const w=Number(cw.value),h=Number(ch.value);
+     if(validSize(w,h)){note.textContent='';pick({w,h},customInput);}else note.textContent=`列数 1–${cols}，行数 1–${rows}。`;
+    });
+    label.append(text('span','',caption),input);return input;
+   };
+   const cw=num('列数',selected.w,cols),ch=num('行数',selected.h,rows),note=text('p','widget-form-error');
+   axes.append(cw.parentElement,text('span','widget-size-times','×'),ch.parentElement);
+   customInput.checked=!isPreset(selected);axes.hidden=!customInput.checked;
+   customInput.addEventListener('change',()=>{axes.hidden=false;cw.focus();const w=Number(cw.value),h=Number(ch.value);if(validSize(w,h))pick({w,h},customInput);});
+   for(const o of options)o.classList.toggle('is-on',o.querySelector('input').checked);
+   field.append(axes,note,text('p','widget-size-note','当前页放不下时，会找其他有空位的页面。'));
+   return field;
+  }
   function open(id,instanceId=null,direct=false){
    const def=defs.find(d=>d.id===id);if(!def||!canSave())return;
    const item=instanceId?getItem(instanceId):null;
@@ -373,23 +330,27 @@ window.snowfallWidgetUI=(()=>{
    const removed=item&&isRemoved(instanceId),seq=++ticket,draft={...item?.settings};
    const {w,h}=item||def;
    let selected=validSize(w,h)?{w,h}:{w:1,h:1};
-   const form=text('form','widget-form widget-content-form'),title=text('h2','',`${def.icon} ${def.name}`),top=text('div','widget-editor-top');
-   title.tabIndex=-1;top.append(title,text('p','',item?details(item):def.description));form.append(top);
-   const sizeArea=text('div','widget-content-size'),sizeSummary=text('strong'),sizeNote=text('p','widget-size-note','当前页放不下时，会找其他有空位的页面。');
-   const changeSize=button('调整尺寸',()=>showSizes(true));
-   sizeArea.append(sizeSummary,changeSize,sizeNote);form.append(sizeArea);
+   // 编辑页是总界面：上面是实时预览，下面依次是尺寸、内容、外观，最后添加到桌面。
+   const form=text('form','widget-form widget-content-form'),title=text('h2','',def.name),top=text('div','widget-editor-top');
+   title.tabIndex=-1;top.append(title,text('p','',item?details(item):def.description));
+   const live=liveStage(id),liveNote=text('p','widget-size-note widget-live-note');
+   live.stage.append(liveNote);form.append(live.stage,top);
+   let currentLook=()=>draft.look,frame=0;
+   function redraw(){
+    if(frame)return;
+    frame=requestAnimationFrame(()=>{
+     frame=0;if(seq!==ticket)return;
+     const settings=clean(id,{...draft});
+     if(id==='bigtext'&&!settings.text.trim())settings.text=bigTextSample;
+     live.show(selected,settings,currentLook());
+     liveNote.textContent=`实时预览 · ${sizeLabel(selected)}（列 × 行）`;
+    });
+   }
+   form.addEventListener('input',redraw);form.addEventListener('change',redraw);
+   const sizeArea=sizePicker(selected,size=>{selected=size;redraw();});form.append(sizeArea);
    const leaveLabel=direct?'返回桌面':'返回小组件列表';
    function leave(){showList(direct?null:id);if(direct)returnHome(instanceId);}
-   function showContent(focus=title){
-    sizeSummary.textContent=`当前尺寸：${sizeLabel(selected)}（列 × 行）`;
-    showStep(form,focus,leave,leaveLabel);
-   }
-   function showSizes(fromContent=false){
-    const backToContent=()=>showContent(fromContent?changeSize:title);
-    const sizeForm=createSizeForm(def,selected,{cols,rows,validSize,prefix},size=>{selected=size;},backToContent);
-    showStep(sizeForm.form,sizeForm.title,backToContent,'返回编辑组件');
-    sizeForm.revealSelected();
-   }
+   function showContent(focus=title){showStep(form,focus,leave,leaveLabel);redraw();}
    const labelField=(caption,input,parent=form)=>{const label=text('label','widget-form-field');label.append(text('span','',caption),input);parent.append(label);};
    const actions=text('div','widget-editor-actions');
    const submit=text('button','widget-primary',removed?'恢复到桌面':item?'保存修改':'添加到桌面');submit.type='submit';
@@ -400,24 +361,24 @@ window.snowfallWidgetUI=(()=>{
    function updateSubmit(){submit.disabled=readingContentImage||(customLookActive&&readingBackground);if(add)add.disabled=submit.disabled;}
    function setContentImageBusy(busy){readingContentImage=busy;updateSubmit();}
    if(id==='bigtext'){
-mountBigText(draft,form,labelField,()=>seq===ticket,setContentImageBusy);
+mountBigText(draft,form,labelField,redraw);
     }else if(id==='panel'){
-     mountPanel(draft,form,labelField,()=>seq===ticket,setContentImageBusy);
+     mountPanel(draft,form,labelField,()=>seq===ticket,setContentImageBusy,redraw);
     }else if(id==='memo'){
     const content=text('textarea');content.maxLength=500;content.rows=4;content.value=draft.text||'';content.placeholder='记一件想随时看到的小事…';
     content.addEventListener('input',()=>{draft.text=content.value;});labelField('便签内容（最多 500 字）',content);
    }else if(id==='photo'){
-    const input=text('input'),photo=text('img','widget-photo-preview');photo.alt='照片预览';photo.src=draft.src||photoDefault;
+    const input=text('input');
     input.type='file';input.accept='image/*';let change=0;
-const reset=button('使用默认小猫',()=>{change++;input.value='';delete draft.src;photo.src=photoDefault;setContentImageBusy(false);error.textContent='';});
+const reset=button('使用默认小猫',()=>{change++;input.value='';delete draft.src;setContentImageBusy(false);error.textContent='';redraw();});
      input.addEventListener('change',async()=>{
       const file=input.files[0];if(!file)return;
       const turn=++change;setContentImageBusy(true);error.textContent='正在读取照片…';
-      try{const src=await importPhoto(file);if(seq!==ticket||turn!==change)return;draft.src=src;photo.src=src;error.textContent='';}
+      try{const src=await importPhoto(file);if(seq!==ticket||turn!==change)return;draft.src=src;error.textContent='';redraw();}
       catch(err){if(seq===ticket&&turn===change)error.textContent=`${err.message||'无法读取照片'} 原照片未更改。`;}
       finally{if(seq===ticket&&turn===change){setContentImageBusy(false);input.value='';}}
      });
-    labelField('选择设备里的照片（仅保存在本机）',input);form.append(photo,reset);
+    labelField('选择设备里的照片（仅保存在本机）',input);form.append(reset);
    }else if(id==='countdown'){
     const name=text('input'),date=text('input');name.type='text';name.maxLength=28;name.placeholder='例如：出发去旅行';name.value=draft.title||'';
     date.type='date';date.required=true;date.min='0001-01-01';date.max='9999-12-31';date.value=draft.date||'';
@@ -425,12 +386,10 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
    }
    let readLook=()=>undefined;
    if(id!=='bigtext'){
-    const lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
-    lookField.append(text('legend','','小组件外观'));
+    const lookBox=text('details','widget-more'),lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
+    lookBox.append(text('summary','','外观（背景、自定义 CSS）'),lookField);lookBox.open=!!draft.look;
    for(const [value,label] of looks){const option=text('option','',label);option.value=value;kind.append(option);}
    kind.value=draft.look?.kind||'default';labelField('外观风格',kind,lookField);
-   const preview=text('div','widget-style-preview'),previewLabel=text('small');
-   preview.append(text('span','',def.name),previewLabel);
    const bgInput=text('input'),cssInput=text('textarea');
    const bgStatus=text('p','widget-size-note'),cssStatus=text('p','widget-form-error');
    bgStatus.setAttribute('role','status');cssStatus.setAttribute('role','status');
@@ -447,11 +406,10 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
    }
    function updatePreview(){
     const look=candidate();customLookActive=look?.kind==='custom';custom.hidden=!customLookActive;
-    previewLabel.textContent=looks.get(kind.value);
     cssStatus.textContent='';cssInput.removeAttribute('aria-invalid');
     try{if(look?.css)parseLookCSS(look.css);}
     catch(err){cssStatus.textContent=err.message;cssInput.setAttribute('aria-invalid','true');delete look.css;}
-    applyLook(preview,look);updateSubmit();
+    currentLook=()=>look;redraw();updateSubmit();
    }
    const removeBG=button('移除背景图片',()=>{
     bgTurn++;background=undefined;bgInput.value='';readingBackground=false;
@@ -475,7 +433,7 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
    labelField('选择背景图片（仅保存在本机）',bgInput,custom);custom.append(bgStatus,removeBG);
    labelField('自定义 CSS（只填写属性和值）',cssInput,custom);custom.append(cssStatus);
    kind.addEventListener('change',updatePreview);cssInput.addEventListener('input',updatePreview);
-   lookField.append(custom,preview);form.append(lookField);updatePreview();
+   lookField.append(custom);form.append(lookBox);updatePreview();
    readLook=()=>{
     const look=candidate();
     try{if(look?.css)parseLookCSS(look.css);}
@@ -500,14 +458,17 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     const message=`${def.name}小组件已${creating?'添加到桌面':removed?'恢复':'保存'} · 第 ${result.page+1} 页`;
     if(stay)status.textContent=message;else returnHome(result.id,message);
    });
-   if(item)showContent();else showSizes();
+   showContent();
   }
   for(const def of defs){
    const group=text('section','widget-type'),card=text('article','widget-choice'),info=text('div','widget-choice-info');
-   const label=text('h2','',def.name),badge=text('small','widget-choice-badge'),action=button('新增',()=>open(def.id));
-   action.setAttribute('aria-label',`新增${def.name}小组件`);
+   const label=text('h2','',def.name),badge=text('small','widget-choice-badge'),action=button('添加',e=>{e.stopPropagation();open(def.id);});
+   action.setAttribute('aria-label',`添加${def.name}小组件`);
+   const thumb=liveStage(def.id,76,76);thumb.stage.classList.add('widget-choice-thumb');
+   card.addEventListener('click',()=>{if(!action.disabled)open(def.id);});
    const instances=text('ul','widget-instances');instances.setAttribute('aria-label',`${def.name}小组件列表`);
-   info.append(label,text('p','',def.description),badge);card.append(text('span','widget-choice-icon',def.icon),info,action);
+   info.append(label,text('p','',def.description),badge);card.append(thumb.stage,info,action);
+   requestAnimationFrame(()=>thumb.show({w:def.w,h:def.h},def.id==='bigtext'?{text:bigTextSample}:{},undefined));
     group.append(card);
     if(stay&&def.id==='photo'){
      const preview=text('figure','widget-photo-example'),image=text('img');

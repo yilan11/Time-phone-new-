@@ -14,7 +14,7 @@ const widgetDefs=[
  {id:'photo',category:'记录与装饰',card:true,name:'图片',icon:'▧',description:'展示自选照片或默认小猫',w:2,h:2,optional:true},
  {id:'art',category:'记录与装饰',selector:'.home-art',name:'装饰',icon:'✧',description:'原来的冰蓝插画',w:2,h:2,initial:{page:0,x:2,y:0}},
  {id:'quote',category:'记录与装饰',selector:'.widget',name:'文字',icon:'❞',description:'显示「美化」里设置的桌面文案',w:4,h:1,initial:{page:0,x:0,y:2}},
-  {id:'bigtext',category:'记录与装饰',card:true,name:'大字',icon:'字',description:'居中显示自定义文字，可更换文字颜色和背景',w:2,h:2,optional:true},
+  {id:'bigtext',category:'记录与装饰',card:true,name:'大字',icon:'字',description:'角线框着一块色块，文字从上往下竖排',w:2,h:2,optional:true},
   {id:'panel',category:'记录与装饰',card:true,name:'蓝色面板',icon:'◈',description:'用自选头像、文字和底色装饰桌面',w:2,h:2,optional:true}
 ];
 const home=document.getElementById('home'),inbox=home.querySelector('.app-grid');
@@ -253,13 +253,20 @@ const done=toolbar.querySelector('.desktop-done');
   drawWidget(items.get(id));setEdit(false);refreshManagers();
   return {id,page:pos.page};
  }
+ // 记住桌面格子的真实大小；编辑页打开时桌面被隐藏，量不到就用上次的。
+ var lastCell=null;
+ function measureCell(){const grid=[...home.querySelectorAll('.desktop-grid')].find(g=>g.getBoundingClientRect().width>40);const r=grid?.getBoundingClientRect();if(r&&r.height>40)lastCell={w:(r.width-3*(COLS-1))/COLS,h:(r.height-3*(ROWS-1))/ROWS,gap:3};return lastCell||{w:90,h:100,gap:3};}
+ measureCell();addEventListener('resize',measureCell);
  const widgetOptions={defs:widgetDefs,cols:COLS,rows:ROWS,validSize,
   list:typeId=>[...items.values(),...removedWidgets.values()].filter(item=>item.typeId===typeId),
   getItem:id=>items.get(id)??removedWidgets.get(id),isRemoved:id=>removedWidgets.has(id),canSave:()=>readable,
   createInstance:(typeId,size,settings,stay)=>saveWidget(typeId,size,settings,{stay}),
   updateInstance:(typeId,instanceId,size,settings,stay)=>saveWidget(typeId,size,settings,{instanceId,stay}),
   restoreInstance:(typeId,instanceId,size,settings,stay)=>saveWidget(typeId,size,settings,{instanceId,restore:true,stay}),
-  removeInstance:id=>removeWidget(id,false),returnHome};
+  removeInstance:id=>removeWidget(id,false),returnHome,
+  // 编辑页的实时预览：和桌面上用同一套小组件，只是不放进桌面。
+  makePreview:typeId=>{const def=definitions.get(typeId);if(!def)return null;try{return def.card?widgetUI.createCard(typeId):def.create?def.create():createFromSource(typeId);}catch{return null;}},
+  cellSize:measureCell};
  const widgetManager=widgetUI.mount(widgetOptions);
  const themeWidgets=document.getElementById('themeWidgetCatalog')?widgetUI.mount({...widgetOptions,view:'beauty',prefix:'themeWidget'}):null;
 function appEntries(){
@@ -273,7 +280,7 @@ function appEntries(){
  return entries;
 }
 function collect(){if(restore(appEntries()))render();}
-function render(){
+function render(){requestAnimationFrame(()=>{if(typeof measureCell==='function')measureCell();});
  // 空白页也需要可见网格，供拖动时计算落点。
  pageGrid(current);
  for(const [page,grid] of grids)grid.hidden=page!==current;
