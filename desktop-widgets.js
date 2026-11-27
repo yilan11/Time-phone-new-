@@ -63,7 +63,6 @@ window.snowfallWidgetUI=(()=>{
    result.textColor=validColor(value.textColor)?value.textColor:bigTextColor;
    // 旧版的“纯色背景”颜色沿用为色块颜色。
    result.panelColor=validColor(value.panelColor)?value.panelColor:value.backgroundMode==='solid'&&validColor(value.backgroundColor)?value.backgroundColor:bigTextPanel;
-   return result;
   }
   if(id==='memo')result.text=typeof value.text==='string'?value.text.slice(0,500):'';
   if(id==='photo'&&photoValid(value.src))result.src=value.src;
@@ -398,9 +397,10 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     name.addEventListener('input',()=>{draft.title=name.value;});date.addEventListener('input',()=>{draft.date=date.value;});labelField('事件名称',name);labelField('目标日期',date);
    }
    let readLook=()=>undefined;
-   if(id!=='bigtext'){
-    const lookBox=text('details','widget-more'),lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
-    lookBox.append(text('summary','','外观（背景、自定义 CSS）'),lookField);lookBox.open=!!draft.look;
+   {
+    // 外观直接摊开：风格、背景图片上传、自定义 CSS 输入框都一直显示。
+    const lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
+    lookField.append(text('legend','','小组件外观'));
    for(const [value,label] of looks){const option=text('option','',label);option.value=value;kind.append(option);}
    kind.value=draft.look?.kind||'default';labelField('外观风格',kind,lookField);
    const bgInput=text('input'),cssInput=text('textarea');
@@ -418,7 +418,7 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     return {kind:'custom',bg:background,css:cssInput.value.trim()};
    }
    function updatePreview(){
-    const look=candidate();customLookActive=look?.kind==='custom';custom.hidden=!customLookActive;
+    const look=candidate();customLookActive=look?.kind==='custom';
     cssStatus.textContent='';cssInput.removeAttribute('aria-invalid');
     try{if(look?.css)parseLookCSS(look.css);}
     catch(err){cssStatus.textContent=err.message;cssInput.setAttribute('aria-invalid','true');delete look.css;}
@@ -436,17 +436,18 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     bgStatus.textContent='正在读取背景图片…';
     try{
      const src=await importPhoto(file,bgValid);if(seq!==ticket||turn!==bgTurn)return;
-     background=src;bgStatus.textContent='已设置背景图片';updatePreview();
+     background=src;kind.value='custom';bgStatus.textContent='已设置背景图片';updatePreview();
     }catch(err){
      if(seq===ticket&&turn===bgTurn)bgStatus.textContent=`${err.message||'无法读取背景图片。'} ${background?'原背景未更改。':'未设置背景图片。'}`;
     }finally{
      if(seq===ticket&&turn===bgTurn){readingBackground=false;bgInput.value='';removeBG.disabled=!background;updateSubmit();}
     }
    });
-   labelField('选择背景图片（仅保存在本机）',bgInput,custom);custom.append(bgStatus,removeBG);
+   labelField('上传背景图片（仅保存在本机）',bgInput,custom);custom.append(bgStatus,removeBG);
    labelField('自定义 CSS（只填写属性和值）',cssInput,custom);custom.append(cssStatus);
-   kind.addEventListener('change',updatePreview);cssInput.addEventListener('input',updatePreview);
-   lookField.append(custom);form.append(lookBox);updatePreview();
+   kind.addEventListener('change',updatePreview);
+   cssInput.addEventListener('input',()=>{if(cssInput.value.trim())kind.value='custom';updatePreview();});
+   lookField.append(custom);form.append(lookField);updatePreview();
    readLook=()=>{
     const look=candidate();
     try{if(look?.css)parseLookCSS(look.css);}

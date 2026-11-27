@@ -113,9 +113,9 @@
 /* 大字：无背景；左上、右下角线就是组件边界；文字在色块里从上往下竖排。 */
 .snow-bigtext,#home .desktop-item.snow-bigtext{
  position:relative;container-type:size;box-sizing:border-box;min-width:0;min-height:0;
- padding:0;overflow:hidden;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;background:transparent;
- color:var(--bigtext-ink,#3b4a52);
+ padding:0;overflow:hidden;color:var(--bigtext-ink,#3b4a52);
 }
+:is(.snow-bigtext,#home .desktop-item.snow-bigtext):not([data-widget-look]){border:0;border-radius:0;box-shadow:none;backdrop-filter:none;background:transparent}
 .snow-bigtext.desktop-ghost{background:transparent!important;box-shadow:none!important}
 .snow-bigtext-corner{position:absolute;pointer-events:none;width:46%;height:min(30%,40cqw);border:2px solid #6b6b6b}
 .snow-bigtext-corner.is-top{top:0;left:0;border-right:0;border-bottom:0}
