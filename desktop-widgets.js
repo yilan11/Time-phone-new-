@@ -347,10 +347,23 @@ window.snowfallWidgetUI=(()=>{
     });
    }
    form.addEventListener('input',redraw);form.addEventListener('change',redraw);
-   const sizeArea=sizePicker(selected,size=>{selected=size;redraw();});form.append(sizeArea);
+   // 尺寸只在编辑页显示当前值；点「修改尺寸」才进入尺寸分页，选完自动生效，返回编辑页。
+   const sizeArea=text('div','widget-content-size'),sizeSummary=text('strong'),changeSize=button('修改尺寸 ›',()=>showSizes());
+   sizeArea.append(sizeSummary,changeSize);form.append(sizeArea);
    const leaveLabel=direct?'返回桌面':'返回小组件列表';
    function leave(){showList(direct?null:id);if(direct)returnHome(instanceId);}
-   function showContent(focus=title){showStep(form,focus,leave,leaveLabel);redraw();}
+   function showContent(focus=title){
+    sizeSummary.textContent=`尺寸：${sizeLabel(selected)}（列 × 行）`;
+    form.prepend(live.stage);showStep(form,focus,leave,leaveLabel);redraw();
+   }
+   function showSizes(){
+    const page=text('div','widget-form widget-size-page'),head=text('div','widget-editor-top'),heading=text('h2','','修改尺寸');
+    heading.tabIndex=-1;head.append(heading,text('p','','点一个尺寸就会生效，上面的预览会跟着变。'));
+    const back=()=>showContent(changeSize),done=button('完成，返回编辑',back);done.className='widget-primary';
+    const actions=text('div','widget-editor-actions');actions.append(done);
+    page.append(live.stage,head,sizePicker(selected,size=>{selected=size;redraw();}),actions);
+    showStep(page,heading,back,'返回编辑组件');redraw();
+   }
    const labelField=(caption,input,parent=form)=>{const label=text('label','widget-form-field');label.append(text('span','',caption),input);parent.append(label);};
    const actions=text('div','widget-editor-actions');
    const submit=text('button','widget-primary',removed?'恢复到桌面':item?'保存修改':'添加到桌面');submit.type='submit';
