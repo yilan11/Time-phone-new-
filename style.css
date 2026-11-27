@@ -105,5 +105,5 @@ header{min-height:66px;padding:8px 20px 12px;display:flex;align-items:center;gap
 .snow-pick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 8px}
 .snow-pick button{flex:1 1 120px;min-height:40px;padding:8px 10px;border:1px solid #d9e2ea;border-radius:12px;background:#f6f9fb;color:#334155;font-size:13px}
 .snow-pick button:disabled{opacity:.5}
-input[type=file].snow-pick-original{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+input[type=file].snow-pick-original{display:none!important}
 .comm-avatar-preview{display:inline-flex;width:56px;height:56px;margin:4px 0;font-size:24px}

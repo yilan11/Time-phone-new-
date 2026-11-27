@@ -10,8 +10,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="雪落机">
   <title>雪落机</title>
-  <link rel="stylesheet" href="style.css?v=pick-1">
-  <script src="app.js?v=pick-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=pick-2">
+  <script src="app.js?v=pick-2" defer></script>
   <link rel="stylesheet" href="snowfall.css?v=1">
   <script src="snowfall.js?v=1" defer></script>
   <style>@keyframes sf-safety{to{visibility:hidden;pointer-events:none}}</style>
@@ -27,7 +27,7 @@
   <script defer src="theme.js?v=beauty-templates-1"></script>
 <link rel="stylesheet" href="gomoku.css?v=1">
 <script defer src="gomoku.js?v=1"></script>
-<script defer src="image-picker.js?v=pick-1"></script>
+<script defer src="image-picker.js?v=pick-2"></script>
 <link rel="stylesheet" href="html-apps.css?v=1">
 </head>
 <body>
@@ -78,7 +78,7 @@
     </section>
     <section class="screen" id="app-widgets"><header><button class="back" data-go="home" aria-label="返回桌面">‹</button><b>小组件</b></header><div class="scroll widget-manager"><p class="hint" id="widgetIntro">同一种小组件可以添加多个，每个的内容、尺寸和位置独立保存。长按桌面上的小组件，点齿轮编辑，点 × 移除；移除后可在列表中恢复。</p><div id="widgetCatalog"></div><section id="widgetEditor" class="widget-editor" aria-label="编辑小组件" hidden></section><p id="widgetStatus" role="status" aria-live="polite"></p></div></section>
     <section class="screen" id="chat">
-      <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>阿遥</b><small><span id="chatStatus">演示模式 · 尚未配置接口</span></small></div></header>
+      <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>阿遥</b><small><span id="chatStatus">演示模式 · 尚未配置接口</span></small></div><button id="chatEditRole" class="header-action" type="button" hidden>资料</button></header>
       <div class="scroll chat-messages" id="messages" aria-live="polite"></div>
       <form id="chatForm" class="composer"><input id="chatInput" placeholder="给阿遥发消息…" autocomplete="off" required maxlength="1000"><button type="submit">发送</button></form>
     </section>
@@ -241,7 +241,7 @@
  <div id="friendResult"></div><div id="friendActions"></div>
  <div class="comm-qr-area"><canvas id="commQr" width="210" height="210" aria-label="装饰二维码，不具备扫码添加功能"></canvas><p>我的通讯名片 · 展示示意</p><small>装饰图案，不是可扫描的真实二维码</small></div></div>
 </section>
-<section class="screen comm-screen" id="commEditor"><header class="comm-header"><button class="comm-icon" data-go="communications" aria-label="返回通讯">‹</button><b id="commEditorTitle">添加角色</b></header><div class="scroll settings-body"><form id="commEditorForm" class="api-form"><label>名称<input id="contactName" required maxlength="30"></label><label>头像（可选）<input id="contactAvatar" type="file" accept="image/*"></label><span id="contactAvatarPreview" class="comm-face comm-avatar-preview" hidden></span><label>角色设定<textarea id="contactPersona" rows="5" maxlength="4000" required placeholder="性格、背景、说话习惯……"></textarea></label><p class="hint">保存在当前浏览器。连接 AI 后，角色设定和对话会发送给设置中的服务商。</p><button>保存角色</button></form></div></section>
+<section class="screen comm-screen" id="commEditor"><header class="comm-header"><button class="comm-icon" data-go="communications" aria-label="返回通讯">‹</button><b id="commEditorTitle">添加角色</b></header><div class="scroll settings-body"><form id="commEditorForm" class="api-form"><label>名称<input id="contactName" required maxlength="30"></label><label>头像（可选）<input id="contactAvatar" type="file" accept="image/*"></label><span id="contactAvatarPreview" class="comm-face comm-avatar-preview" hidden></span><button id="contactAvatarClear" type="button" class="secondary">不用图片头像</button><label>角色设定<textarea id="contactPersona" rows="5" maxlength="4000" required placeholder="性格、背景、说话习惯……"></textarea></label><p class="hint">保存在当前浏览器。连接 AI 后，角色设定和对话会发送给设置中的服务商。</p><button>保存角色</button></form></div></section>
 <section class="screen" id="wallet"><header class="wallet-header"><button id="walletBack" aria-label="返回">‹</button><b id="walletHeading">钱包</b><button id="walletSettings" aria-label="钱包设置">⚙</button></header><div id="walletContent" class="wallet-content"></div><nav id="walletNav" class="wallet-nav" aria-label="钱包导航"></nav></section>
 <dialog id="commDialog"><form method="dialog"><h3 id="commDialogTitle"></h3><p id="commDialogText"></p><button>知道了</button></form></dialog>
     <section class="screen" id="app-gomoku"><header><button class="back" data-go="home" aria-label="返回桌面">‹</button><b>五子棋</b></header><div class="gm-body"><p class="gm-status" role="status" aria-live="polite"></p><div class="gm-board" role="grid" aria-label="15乘15五子棋棋盘"></div><div class="gm-actions"><button type="button" class="gm-undo">悔棋</button><button type="button" class="gm-restart">重新开始</button></div><p class="gm-help">黑棋先行，双方轮流落子；棋局会保存在当前浏览器中。</p><p class="gm-save" role="status"></p></div></section>
