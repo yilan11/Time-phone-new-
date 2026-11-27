@@ -1,0 +1,108 @@
+<div class="pl" id="pl">
+  <!-- 照片：放在你画的两个框里 -->
+  <label class="photo l" data-k="plImg1"><input type="file" accept="image/*"></label>
+  <label class="photo r" data-k="plImg2"><input type="file" accept="image/*"></label>
+
+  <!-- 你的原图（线稿），盖在照片上面，白色部分自动透明 -->
+  <img class="art" src="https://beeimg.us.ci/temp/1f95b31926e78c608d0d014b2c0398a7.png" alt="">
+
+  <!-- 两条横线中间的字 -->
+  <div class="cap" contenteditable="true" data-k="plTxt">写点什么</div>
+</div>
+
+<style>
+  .pl {
+    --ink: #555;          /* 字的颜色 */
+    position: relative;
+    width: 100%;
+    aspect-ratio: 820 / 500;
+    max-height: 100%;
+    margin: auto;
+    overflow: hidden;
+    background: #fff;
+    container-type: inline-size;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .pl .art {
+    position: absolute;
+    width: 182.07%;
+    left: -42.44%;
+    top: -92.6%;
+    max-width: none;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .pl .photo {
+    position: absolute;
+    width: 24.9%;
+    height: 52%;
+    background: #fff center / cover no-repeat;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .pl .photo.l { left: 10.85%; top: 16.8%; transform: rotate(-7.9deg); }
+  .pl .photo.r { left: 64.8%;  top: 15.8%; transform: rotate(8.2deg); }
+  .pl .photo input { display: none; }
+  .pl .cap {
+    position: absolute;
+    left: 51.16%;
+    top: 93%;
+    transform: translate(-50%, -50%);
+    max-width: 28%;
+    z-index: 3;
+    text-align: center;
+    color: var(--ink);
+    font-size: 3.6cqw;
+    letter-spacing: .15em;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+    min-width: 2em;
+  }
+</style>
+
+<script>
+  (function () {
+    var root = document.getElementById('pl');
+    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+    // 两条横线中间的字：点击修改，自动保存
+    root.querySelectorAll('.cap').forEach(function (el) {
+      var v = load(el.dataset.k);
+      if (v !== null && v !== '') el.innerText = v;
+      el.addEventListener('input', function () { save(el.dataset.k, el.innerText); });
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+    });
+
+    // 框里的照片：点击导入；1MB 以内存原图，更大的按比例缩小（最长边 1200）
+    root.querySelectorAll('.photo').forEach(function (ph) {
+      var input = ph.querySelector('input');
+      var k = ph.dataset.k;
+      var saved = load(k);
+      if (saved) ph.style.backgroundImage = 'url(' + saved + ')';
+      function show(url) { ph.style.backgroundImage = 'url(' + url + ')'; save(k, url); }
+      input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          if (f.size <= 1024 * 1024) { show(reader.result); return; }
+          var img = new Image();
+          img.onload = function () {
+            var s = Math.min(1, 1200 / Math.max(img.width, img.height));
+            var c = document.createElement('canvas');
+            c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            show(c.toDataURL('image/jpeg', 0.92));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(f);
+      });
+    });
+  })();
+</script>

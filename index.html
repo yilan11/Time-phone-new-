@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="雪落机">
   <title>雪落机</title>
   <link rel="stylesheet" href="style.css?v=snowline-white-sky-1">
-  <script src="app.js?v=snowline-home-1" defer></script>
+  <script src="app.js?v=beauty-templates-1" defer></script>
   <link rel="stylesheet" href="snowfall.css?v=1">
   <script src="snowfall.js?v=1" defer></script>
   <style>@keyframes sf-safety{to{visibility:hidden;pointer-events:none}}</style>
@@ -20,9 +20,11 @@
 <script defer src="wallet.js?v=1"></script>
 <link rel="stylesheet" href="profiles.css?v=1">
 <script defer src="profiles.js?v=1"></script>
-<link rel="stylesheet" href="desktop.css?v=snow-icons-half-1">
-  <script defer src="desktop-widgets.js?v=snow-widgets-4"></script>
-  <script defer src="desktop.js?v=snow-widgets-4"></script>
+<link rel="stylesheet" href="desktop.css?v=widget-panel-1">
+<script defer src="desktop-widgets.js?v=widget-panel-1"></script>
+<script defer src="desktop.js?v=widget-panel-1"></script>
+  <link rel="stylesheet" href="theme.css?v=beauty-templates-1">
+  <script defer src="theme.js?v=beauty-templates-1"></script>
 <link rel="stylesheet" href="gomoku.css?v=1">
 <script defer src="gomoku.js?v=1"></script>
 <link rel="stylesheet" href="html-apps.css?v=1">
@@ -73,7 +75,7 @@
       </div>
       <p class="home-note">雪落机 · LITTLE PHONE <span>● ○ ○</span></p>
     </section>
-    <section class="screen" id="app-widgets"><header><button class="back" data-go="home" aria-label="返回桌面">‹</button><b>小组件</b></header><div class="scroll widget-manager"><p class="hint" id="widgetIntro">选择小组件和尺寸。每种最多放一个；长按桌面上的小组件，点齿轮可编辑，点 × 可移除。移除后仍保留内容。</p><div id="widgetCatalog"></div><section id="widgetEditor" class="widget-editor" aria-label="编辑小组件" hidden></section><p id="widgetStatus" role="status" aria-live="polite"></p></div></section>
+    <section class="screen" id="app-widgets"><header><button class="back" data-go="home" aria-label="返回桌面">‹</button><b>小组件</b></header><div class="scroll widget-manager"><p class="hint" id="widgetIntro">同一种小组件可以添加多个，每个的内容、尺寸和位置独立保存。长按桌面上的小组件，点齿轮编辑，点 × 移除；移除后可在列表中恢复。</p><div id="widgetCatalog"></div><section id="widgetEditor" class="widget-editor" aria-label="编辑小组件" hidden></section><p id="widgetStatus" role="status" aria-live="polite"></p></div></section>
     <section class="screen" id="chat">
       <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>阿遥</b><small><span id="chatStatus">演示模式 · 尚未配置接口</span></small></div></header>
       <div class="scroll chat-messages" id="messages" aria-live="polite"></div>
@@ -101,17 +103,112 @@
 <p class="hint">使用 OpenAI 兼容的 Chat Completions 接口。地址填到 /v1 即可，也支持完整 /chat/completions 地址。消息会发送给填写的服务商，可能产生费用。服务商必须允许浏览器跨域请求；本页没有代理服务器。</p><h2>雪落机</h2><p>聊天与相遇共用上面的接口配置，分别保存对话。未连接时为预设试玩。记录和主题保存在当前浏览器；关闭网页后不会后台运行。</p><p class="hint">版本：雪落机 1.0 · 2026.11.23</p><button id="reset" class="danger">清除本机演示数据</button><p class="hint">清除后会重新显示初始演示内容；此操作不可撤销。</p></div>
     </section>
     <section class="screen" id="beauty">
-      <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>主题</b><small>让这片小天地更像你</small></div></header>
-      <div class="scroll settings-body"><div class="section-label">YOUR OWN LITTLE SPACE</div><h2>桌面外观</h2>
+      <header><button class="back" data-go="home" aria-label="返回">‹</button><div><b>主题</b><small>让这片小天地更像你</small></div></header>
+      <nav class="theme-nav" aria-label="美化分类">
+        <button type="button" aria-controls="themeDesktop" aria-pressed="true">桌面美化</button>
+        <button type="button" aria-controls="themeApps" aria-pressed="false">App 美化</button>
+        <button type="button" aria-controls="themeWidgets" aria-pressed="false">小组件美化</button>
+      </nav>
+      <section class="scroll settings-body theme-pane" id="themeDesktop" aria-labelledby="themeDesktopTitle">
+        <h2 id="themeDesktopTitle">桌面美化</h2>
+        <section class="theme-template" aria-labelledby="themeDesktopTemplateTitle">
+          <h3 id="themeDesktopTemplateTitle">桌面美化模板</h3>
+          <p>复制提示词发给 AI，告诉它想要的风格。生成的配色代码粘贴到下方「全局主题 CSS」，再点「保存桌面美化」。</p>
+          <button type="button" data-copy-theme-prompt>复制提示词</button>
+          <p class="theme-copy-status" role="status"></p>
+          <details><summary>查看提示词 / 手动复制</summary>
+            <textarea class="theme-prompt" aria-label="桌面美化 AI 提示词" rows="6" readonly spellcheck="false">请为「雪落机」生成一套桌面配色。我想要的风格是：[换成你喜欢的颜色、氛围或风格]。
+请注明粘贴位置：主题 → 桌面美化 → 全局主题 CSS → 配色与文字。给我一个独立、可复制的 CSS 片段，只写“属性: 值;”，最多 1600 字符。仅允许 --ice-text、--ice-muted、--ice-50、--ice-100、--ice-200、--ice-300、--ice-glass、--ice-border、--ice-dock、--theme-accent；值用 #RRGGBB 或可用的 CSS 颜色值，不要用渐变或 var()。保持主要文字清晰可读。
+不要输出 :root、选择器、大括号、引号、HTML、脚本或外部链接。若建议桌面标题（最多 30 字）、桌面小字（最多 60 字）、纯色背景或统一图标底色，请在代码片段之外单列；这些填各自的控件，背景色需要先选「纯色背景」。填写后点「保存桌面美化」。</textarea>
+          </details>
+        </section>
         <form id="beautyForm" class="api-form">
           <label>桌面标题<input id="beautyTitle" maxlength="30" required></label>
           <label>桌面小字<input id="beautySubtitle" maxlength="60"></label>
-          <div class="color-row"><label>背景颜色<input id="beautyBg" type="color" value="#ffffff"></label><label>应用图标<input id="beautyIcon" type="color" value="#eeeeee"></label></div>
-          <label class="remember"><input id="beautyWallpaper" type="checkbox"> 使用默认壁纸（取消后使用背景颜色）</label>
-          <label>文字大小<select id="beautySize"><option value="14">小巧</option><option value="16">标准</option><option value="18">大字</option></select></label>
-          <button type="submit">保存外观</button><button type="button" id="beautyDefault" class="secondary">恢复默认壁纸与液态玻璃图标</button>
-        </form><p id="beautyStatus" class="hint" role="status"></p>
-      </div>
+          <label>背景方式<select id="beautyBackgroundMode"><option value="wallpaper">默认雪线壁纸</option><option value="custom">自选壁纸</option><option value="solid">纯色背景</option></select></label>
+          <div id="beautyWallpaperControls" class="theme-fields" hidden>
+            <label>选择壁纸图片<input id="beautyWallpaperFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+            <img id="beautyWallpaperPreview" class="theme-wallpaper-preview" alt="壁纸预览" hidden>
+            <button type="button" id="beautyWallpaperRemove" class="secondary">移除自选壁纸</button>
+            <p id="beautyWallpaperStatus" class="theme-note" role="status"></p>
+          </div>
+          <label id="beautyColorControls" hidden>背景颜色<input id="beautyBg" type="color" value="#dfe8f4"></label>
+          <label>统一图标底色<input id="beautyIcon" type="color" value="#eeeeee"></label>
+          <label>阅读字号<select id="beautySize"><option value="14">小巧</option><option value="16">标准</option><option value="18">大字</option></select></label>
+          <details class="theme-code"><summary>全局主题 CSS</summary>
+            <label>配色与文字（只填属性和值）<textarea id="beautyGlobalCSS" rows="3" maxlength="1600" spellcheck="false" placeholder="--ice-text: #3e3655; --ice-dock: #ebdff5; --theme-accent: #624681;"></textarea></label>
+            <p class="theme-note">配色应用于桌面和主题页，不改变其它 App 的布局。支持 --ice-text、--ice-muted、--ice-50、--ice-100、--ice-200、--ice-300、--ice-glass、--ice-border、--ice-dock、--theme-accent。</p>
+          </details>
+          <button type="submit">保存桌面美化</button><button type="button" id="beautyDefault" class="secondary">恢复默认桌面外观</button>
+          <p id="beautyStatus" class="theme-note" role="status"></p>
+        </form>
+      </section>
+      <section class="scroll settings-body theme-pane" id="themeApps" aria-labelledby="themeAppsTitle" hidden>
+        <h2 id="themeAppsTitle">App 美化</h2>
+        <section class="theme-template" aria-labelledby="themeAppsTemplateTitle">
+          <h3 id="themeAppsTemplateTitle">App 美化模板</h3>
+          <p>这个模板只改桌面图标，不改 App 打开后的页面。生成的代码分开粘贴到「形态 CSS」和「图标内部 CSS」。</p>
+          <button type="button" data-copy-theme-prompt>复制提示词</button>
+          <p class="theme-copy-status" role="status"></p>
+          <details><summary>查看提示词 / 手动复制</summary>
+            <textarea class="theme-prompt" aria-label="App 美化 AI 提示词" rows="6" readonly spellcheck="false">请为「雪落机」的 App 图标设计外观。App：[名称]；风格：[颜色、形状或氛围]。请分开输出两个独立片段，并标明粘贴位置：
+1. 形态 CSS：在「主题 → App 美化」选中 App，把「图标形态」设为「自定义代码」，粘贴到「形态 CSS」。最多 1000 字符，只允许 border-radius、clip-path（可用 polygon()、circle()、ellipse() 或 inset()）。
+2. 图标内部 CSS：展开「图标内部 CSS」，只粘贴图案与底板样式。最多 1600 字符，只允许 color、background、background-color、background-image、border、border-color、border-style、box-shadow。背景可用纯色或 CSS 渐变，不用 url() 或 var()。
+各片段只写“属性: 值;”，不要输出选择器、大括号、引号、HTML、脚本或外部链接。完整的 App 页面样式文件（例如含 .snow-app 的 CSS）不能粘贴到这里。填完请提醒我点「保存当前 App 图标」。</textarea>
+          </details>
+        </section>
+        <details class="theme-code theme-batch">
+          <summary>批量更改图标形状</summary>
+          <form id="themeBatchForm" class="api-form">
+            <fieldset>
+              <legend>勾选要更改的 App</legend>
+              <div class="theme-batch-tools">
+                <button type="button" id="themeBatchAll" class="secondary" disabled>全选</button>
+                <button type="button" id="themeBatchClear" class="secondary" disabled>清空选择</button>
+                <output id="themeBatchCount" class="theme-note">已选 0 个</output>
+              </div>
+              <div id="themeBatchList" class="theme-batch-list"></div>
+            </fieldset>
+            <label>统一图标形状<select id="themeBatchShape" required><option value="">请选择形状</option></select></label>
+            <p class="theme-note">只更改选中 App 的轮廓（包括原来的自定义轮廓），保留图标图片和配色。</p>
+            <button type="submit" disabled>应用到选中的 App</button>
+            <p id="themeBatchStatus" class="theme-note" role="status"></p>
+          </form>
+        </details>
+        <form id="themeAppForm" class="api-form">
+          <label>选择 App<select id="themeAppSelect"></select></label>
+          <div id="themeIconPreview" aria-label="图标预览"></div>
+          <label>上传图标图片<input id="themeIconFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <button type="button" id="themeIconRemove" class="secondary">移除图片，使用原图标</button>
+          <p id="themeIconFileStatus" class="theme-note" role="status"></p>
+          <label>图标形态<select id="themeIconShape"><option value="default">原样式</option><option value="round">圆形</option><option value="square">方形</option><option value="diamond">菱形</option><option value="hexagon">六边形</option><option value="custom">自定义代码</option></select></label>
+          <label id="themeShapeControls" hidden>形态 CSS<textarea id="themeShapeCSS" rows="2" maxlength="1000" spellcheck="false" placeholder="border-radius: 35%; 或 clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></textarea></label>
+          <details class="theme-code"><summary>图标内部 CSS</summary>
+            <label>图案及底板样式（只填属性和值）<textarea id="themeIconCSS" rows="3" maxlength="1600" spellcheck="false" placeholder="color: #684e80; background: #efe3f8; box-shadow: 0 2px 8px #bba7cc;"></textarea></label>
+            <p class="theme-note">可修改图案颜色、底板、边框、阴影等，不支持脚本、选择器或外部链接。</p>
+          </details>
+          <button type="submit">保存当前 App 图标</button><button type="button" id="themeIconDefault" class="secondary">恢复当前 App 的默认图标</button>
+          <p id="themeIconStatus" class="theme-note" role="status"></p>
+        </form>
+      </section>
+      <section class="scroll widget-manager theme-pane" id="themeWidgets" aria-labelledby="themeWidgetsTitle" hidden>
+        <h2 id="themeWidgetsTitle">小组件美化</h2>
+        <section class="theme-template" aria-labelledby="themeWidgetsTemplateTitle">
+          <h3 id="themeWidgetsTemplateTitle">小组件美化模板</h3>
+          <p>普通小组件的代码粘贴到「自定义风格」里的「自定义 CSS」；大字组件用文字和颜色等独立字段，不粘贴 CSS。</p>
+          <button type="button" data-copy-theme-prompt>复制提示词</button>
+          <p class="theme-copy-status" role="status"></p>
+          <details><summary>查看提示词 / 手动复制</summary>
+            <textarea class="theme-prompt" aria-label="小组件美化 AI 提示词" rows="6" readonly spellcheck="false">请为「雪落机」生成小组件美化内容。组件：[便签、倒计时、大字等]；风格：[换成你喜欢的颜色或氛围]。仅按所选组件的规则输出，并标明位置：
+普通小组件：在「主题 → 小组件美化」打开组件编辑器，选「自定义风格」，将片段贴到「自定义 CSS」。最多 4000 字符，只写“属性: 值;”。仅允许 background、background-color、background-image、background-size、background-position、background-repeat、color、border、border-color、border-width、border-style、border-radius、box-shadow、text-shadow、font-size、font-weight、font-family、letter-spacing、backdrop-filter、-webkit-backdrop-filter。给我一个独立片段，不写选择器、大括号、引号、完整 CSS、HTML、脚本、url()、var() 或外部链接。如需背景图片，用图片上传控件。
+大字组件：分别给出「大字内容」（最多 120 字，只填文字）、「文字颜色」（#RRGGBB）和「背景模式」（透明背景、纯色背景或图片背景）。纯色给「背景颜色」（#RRGGBB），图片只描述建议，由我在「选择背景图片」处上传。不要给大字组件生成 CSS。填写后在组件编辑器保存。</textarea>
+          </details>
+        </section>
+        <p class="hint" id="themeWidgetIntro">可添加小组件、调整尺寸和外观。这里和桌面长按编辑用的是同一份设置。</p>
+        <div id="themeWidgetCatalog"></div>
+        <section id="themeWidgetEditor" class="widget-editor" aria-label="编辑小组件" hidden></section>
+        <p id="themeWidgetStatus" class="theme-note" role="status"></p>
+      </section>
     </section>
     <section class="screen" id="encounter">
       <header><button class="back" data-go="home" aria-label="返回桌面">‹</button><div><b>相遇</b><small id="storyMode">预设试玩 · 可在设置中连接 AI</small></div><button id="storyToggle" class="header-action" aria-expanded="false" aria-controls="storySettings">剧本</button></header>

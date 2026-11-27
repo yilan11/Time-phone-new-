@@ -1,0 +1,133 @@
+<div class="pw" id="pw">
+  <div class="card">
+    <label class="pic" id="pic1">
+      <input type="file" accept="image/*" data-k="pwImg1">
+      <span class="hint">+</span>
+    </label>
+    <div class="name" contenteditable="true" data-k="pwName1">名字</div>
+  </div>
+
+  <svg class="beat" viewBox="0 0 100 60" preserveAspectRatio="none">
+    <polyline points="0,38 14,38 18,22 25,52 32,4 40,54 45,26 50,52 55,12 58,38 100,38" />
+  </svg>
+
+  <div class="card">
+    <label class="pic" id="pic2">
+      <input type="file" accept="image/*" data-k="pwImg2">
+      <span class="hint">+</span>
+    </label>
+    <div class="name" contenteditable="true" data-k="pwName2">名字</div>
+  </div>
+</div>
+
+<style>
+  .pw {
+    --line: #5a5a5a;   /* 框和心电图的颜色 */
+    --ink: #4a4a4a;    /* 名字颜色 */
+    --card: #ffffff;   /* 卡片底色 */
+    width: 100%;
+    height: 100%;
+    min-height: 110px;
+    box-sizing: border-box;
+    padding: 4%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .pw .card {
+    flex: 0 0 34%;
+    aspect-ratio: 5 / 7;
+    max-height: 100%;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  .pw .pic {
+    flex: 1;
+    margin: 3%;
+    border: 1.5px solid var(--line);
+    border-radius: 50%;
+    background: #f4f4f4 center / cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    align-self: center;
+    max-width: 94%;
+  }
+  .pw .pic input { display: none; }
+  .pw .pic .hint { color: #bbb; font-size: 22px; }
+  .pw .pic.has .hint { display: none; }
+  .pw .name {
+    border-top: 1.5px solid var(--line);
+    padding: 4% 6%;
+    text-align: center;
+    color: var(--ink);
+    font-size: clamp(11px, 3.2vw, 18px);
+    letter-spacing: .3em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+  }
+  .pw .beat {
+    flex: 1 1 auto;
+    height: 30%;
+    min-width: 30px;
+    overflow: visible;
+  }
+  .pw .beat polyline {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+  }
+</style>
+
+<script>
+  (function () {
+    var root = document.getElementById('pw');
+    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+    // 名字：点击修改，自动保存
+    root.querySelectorAll('.name').forEach(function (el) {
+      var v = load(el.dataset.k);
+      if (v !== null && v !== '') el.innerText = v;
+      el.addEventListener('input', function () { save(el.dataset.k, el.innerText); });
+      el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+    });
+
+    // 圆形：点击选图，压缩后保存
+    root.querySelectorAll('.pic').forEach(function (pic) {
+      var input = pic.querySelector('input');
+      var k = input.dataset.k;
+      var saved = load(k);
+      if (saved) { pic.style.backgroundImage = 'url(' + saved + ')'; pic.classList.add('has'); }
+      input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) return;
+        var img = new Image();
+        var reader = new FileReader();
+        reader.onload = function () { img.src = reader.result; };
+        img.onload = function () {
+          var s = Math.min(img.width, img.height), size = 400;
+          var c = document.createElement('canvas');
+          c.width = c.height = size;
+          c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+          var url = c.toDataURL('image/jpeg', 0.85);
+          pic.style.backgroundImage = 'url(' + url + ')';
+          pic.classList.add('has');
+          save(k, url);
+        };
+        reader.readAsDataURL(f);
+      });
+    });
+  })();
+</script>

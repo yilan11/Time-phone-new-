@@ -1,7 +1,7 @@
 /* 桌面布局独立保存；保留原节点和 APP 事件，不接触业务数据。 */
 (()=>{
 'use strict';
-const KEY='snowfall-desktop-layout-v3',COLS=4,ROWS=6,MAX_PAGES=1000;
+const KEY='snowfall-desktop-layout-v4',LEGACY_KEY='snowfall-desktop-layout-v3',COLS=4,ROWS=6,MAX_PAGES=1000;
 const validSize=(w,h)=>Number.isInteger(w)&&w>=1&&w<=COLS&&Number.isInteger(h)&&h>=1&&h<=ROWS;
 const widgetUI=window.snowfallWidgetUI;
 if(!widgetUI){console.warn('小组件模块未加载，保留原始桌面和本地布局。');return;}
@@ -13,25 +13,51 @@ const widgetDefs=[
  {id:'memo',category:'记录与装饰',card:true,name:'便签',icon:'▤',description:'把想记住的小事放在桌面',w:2,h:2,optional:true},
  {id:'photo',category:'记录与装饰',card:true,name:'图片',icon:'▧',description:'展示自选照片或默认小猫',w:2,h:2,optional:true},
  {id:'art',category:'记录与装饰',selector:'.home-art',name:'装饰',icon:'✧',description:'原来的冰蓝插画',w:2,h:2,initial:{page:0,x:2,y:0}},
- {id:'quote',category:'记录与装饰',selector:'.widget',name:'文字',icon:'❞',description:'显示「美化」里设置的桌面文案',w:4,h:1,initial:{page:0,x:0,y:2}}
+ {id:'quote',category:'记录与装饰',selector:'.widget',name:'文字',icon:'❞',description:'显示「美化」里设置的桌面文案',w:4,h:1,initial:{page:0,x:0,y:2}},
+  {id:'bigtext',category:'记录与装饰',card:true,name:'大字',icon:'字',description:'居中显示自定义文字，可更换文字颜色和背景',w:2,h:2,optional:true},
+  {id:'panel',category:'记录与装饰',card:true,name:'蓝色面板',icon:'◈',description:'用自选头像、文字和底色装饰桌面',w:2,h:2,optional:true}
 ];
 const home=document.getElementById('home'),inbox=home.querySelector('.app-grid');
-const items=new Map(),widgets=new Map(),removed=new Set();let pages=1,current=0,editing=false,gesture=null,ghost=null,target=null,edgeTimer=null,edgeLock=0,suppressUntil=0,readable=true;
-let saved=null;
-// 内容和尺寸用同一次本地写入保存，避免空间不足时只保存了一半；不写入任何 App 的业务键。
-const widgetSettings=new Map();
-try{
- const raw=localStorage.getItem(KEY);
- if(raw){
-  saved=JSON.parse(raw);
-  if(!saved||saved.version!==3||!Number.isInteger(saved.pages)||saved.pages<1||saved.pages>MAX_PAGES||!saved.items||typeof saved.items!=='object'||Array.isArray(saved.items))throw Error('invalid layout');
-  if(saved.removedWidgets!==undefined&&(!Array.isArray(saved.removedWidgets)||saved.removedWidgets.some(id=>!widgetDefs.some(def=>def.id===id))))throw Error('invalid removed widgets');
-  if(saved.widgetSettings!==undefined&&(!saved.widgetSettings||typeof saved.widgetSettings!=='object'||Array.isArray(saved.widgetSettings)))throw Error('invalid widget settings');
-  pages=saved.pages;current=Math.max(0,Math.min(pages-1,Number.isInteger(saved.current)?saved.current:0));
-  for(const id of saved.removedWidgets||[])removed.add(id);
-  for(const def of widgetDefs){const value=widgetUI?.clean(def.id,saved.widgetSettings?.[def.id]);if(value&&Object.keys(value).length)widgetSettings.set(def.id,value);}
+const definitions=new Map(widgetDefs.map(def=>[def.id,def]));
+ const items=new Map(),removedWidgets=new Map();
+ let pages=1,current=0,editing=false,gesture=null,ghost=null,target=null,edgeTimer=null,edgeLock=0,suppressUntil=0,readable=true;
+ function isRecord(value){return value!==null&&typeof value==='object'&&!Array.isArray(value);}
+ function defaultWidgets(){
+  return Object.fromEntries(widgetDefs.filter(def=>def.initial).map(def=>[
+   `widget:${def.id}`,{typeId:def.id,...def.initial,w:def.w,h:def.h,settings:{},removed:false}
+  ]));
  }
-}catch(e){saved=null;readable=false;console.warn('桌面布局读取失败，保留原始存储：',e);}
+ function migrateV3(layout){
+  if(layout.removedWidgets!==undefined&&(!Array.isArray(layout.removedWidgets)||layout.removedWidgets.some(id=>!definitions.has(id))))throw Error('invalid removed widgets');
+  if(layout.widgetSettings!==undefined&&!isRecord(layout.widgetSettings))throw Error('invalid widget settings');
+  const widgets={};
+  for(const def of widgetDefs){
+   const placed=layout.items[def.id],settings=layout.widgetSettings?.[def.id];
+   const removed=Boolean(layout.removedWidgets?.includes(def.id)||(!placed&&!def.initial&&settings));
+   if(!placed&&!def.initial&&!removed)continue;
+   const position=placed||def.initial||{page:0,x:0,y:0};
+   const {page,x,y}=position;
+   const {w,h}=validSize(position.w,position.h)?position:def;
+   widgets[`widget:${def.id}`]={typeId:def.id,page,x,y,w,h,settings:widgetUI.clean(def.id,settings),removed};
+  }
+  const apps=Object.fromEntries(Object.entries(layout.items).filter(([id])=>id.startsWith('app:')));
+  return {version:4,pages:layout.pages,current:layout.current,items:apps,widgets};
+ }
+ let saved=null,needsMigration=false;
+ try{
+  const raw=localStorage.getItem(KEY)??localStorage.getItem(LEGACY_KEY);
+  if(raw!==null){
+   const layout=JSON.parse(raw);
+   if(!isRecord(layout)||![3,4].includes(layout.version)||!Number.isInteger(layout.pages)||layout.pages<1||layout.pages>MAX_PAGES||!isRecord(layout.items))throw Error('invalid layout');
+   saved=layout.version===3?migrateV3(layout):layout;
+   if(!isRecord(saved.widgets))throw Error('invalid widget instances');
+   for(const [id,widget] of Object.entries(saved.widgets)){
+    if(!id.startsWith('widget:')||!isRecord(widget)||!definitions.has(widget.typeId)||!validSize(widget.w,widget.h)||typeof widget.removed!=='boolean')throw Error('invalid widget instance');
+   }
+   needsMigration=layout.version===3;
+   pages=saved.pages;current=Math.max(0,Math.min(pages-1,Number.isInteger(saved.current)?saved.current:0));
+  }
+ }catch(e){saved=null;readable=false;console.warn('桌面布局读取失败，保留原始存储：',e);}
 home.classList.add('desktop-home');
 const toolbar=document.createElement('div');toolbar.className='desktop-toolbar';
 toolbar.innerHTML='<button type="button" class="desktop-create" hidden>＋新增页面</button><button type="button" class="desktop-done" aria-label="完成并保存桌面编辑" hidden>√</button>';
@@ -56,8 +82,15 @@ const done=toolbar.querySelector('.desktop-done');
  function persist(){
   if(!readable){hint.textContent=layoutReadError;return false;}
   try{
-   const placed=Object.fromEntries([...items].map(([id,{page,x,y,w,h}])=>[id,{page,x,y,w,h}]));
-   localStorage.setItem(KEY,JSON.stringify({version:3,pages,current,removedWidgets:[...removed],items:placed,widgetSettings:Object.fromEntries(widgetSettings)}));
+   const apps={},widgets={};
+   function write({id,typeId,page,x,y,w,h,settings},removed=false){
+    const position={page,x,y,w,h};
+    if(typeId)widgets[id]={typeId,...position,settings,removed};else apps[id]=position;
+   }
+   for(const item of items.values())write(item);
+   for(const item of removedWidgets.values())write(item,true);
+   // 位置与内容一次写入；不动旧键及其他 App 的数据。
+   localStorage.setItem(KEY,JSON.stringify({version:4,pages,current,items:apps,widgets}));
    return true;
   }catch(e){hint.textContent='保存失败：本机存储不可用或已满。';console.warn('桌面保存失败',e);return false;}
  }
@@ -77,7 +110,7 @@ const done=toolbar.querySelector('.desktop-done');
   if(!hasDesktopNode(item))return false;
   const {id,node}=item,{page,x,y}=pos;
   node.classList.add('desktop-item');node.dataset.desktopId=id;node.draggable=false;
-  if(!widgets.has(id)){node.classList.add('desktop-app');node.title=node.textContent.trim();}
+  if(!item.typeId){node.classList.add('desktop-app');node.title=node.textContent.trim();}
   items.set(id,{...item,page,x,y});pages=Math.max(pages,page+1);
   return true;
  }
@@ -98,7 +131,7 @@ const done=toolbar.querySelector('.desktop-done');
     continue;
    }
    seen.set(item.id,item);
-   const prior=saved?.items[item.id];
+   const prior=item.typeId?saved?.widgets[item.id]:saved?.items[item.id];
    if(prior&&Number.isInteger(prior.page)&&prior.page>=0&&prior.page<pages&&Number.isInteger(prior.x)&&Number.isInteger(prior.y)&&fits(item,prior.page,prior.x,prior.y)){
     if(register(item,prior))changed=true;
    }else pending.push(item);
@@ -126,74 +159,109 @@ const done=toolbar.querySelector('.desktop-done');
   const frag=document.createDocumentFragment();function cell(text,cls){const s=document.createElement('span');s.textContent=text;if(cls)s.className=cls;frag.append(s);}
   for(const week of '日一二三四五六')cell(week,'mini-week');for(let i=0;i<offset;i++)cell('');for(let d=1;d<=date.getDate();d++)cell(d,d===today?'mini-today':'');days.replaceChildren(frag);
  }
- let observer=null;function bind(){observer?.disconnect();const label=frame?.contentDocument?.getElementById('monthLabel');if(label){observer=new MutationObserver(update);observer.observe(label,{attributes:true,attributeFilter:['aria-label']});}update();}
- frame?.addEventListener('load',bind);document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});window.addEventListener('pageshow',update);setInterval(update,60000);bind();return node;
-}
-const widgetEntries=[];
-for(const def of widgetDefs){
- const card=def.card?widgetUI.createCard(def.id):null;
- const node=def.card?card?.node:def.create?def.create():home.querySelector(def.selector);
- const entry={...def,node,card};
- if(!hasDesktopNode(entry))continue;
- widgets.set(def.id,entry);
- node.classList.add('desktop-item');node.dataset.desktopId=def.id;node.tabIndex=0;
- node.removeAttribute('aria-hidden');node.setAttribute('role','group');node.setAttribute('aria-label',`${def.name}小组件`);
- const control=(className,symbol,label,action)=>{
-  const button=document.createElement('button');button.type='button';button.className=`desktop-widget-control ${className}`;
-  button.textContent=symbol;button.setAttribute('aria-label',`${label}${def.name}小组件`);button.hidden=true;
-  button.addEventListener('click',e=>{e.stopPropagation();action();});node.append(button);return button;
- };
- entry.gear=control('desktop-gear','⚙','编辑',()=>openWidget(def.id));
- entry.remove=control('desktop-remove','×','移除',()=>removeWidget(def.id));
- const prior=saved?.items[def.id];
- // 预设、自定义以及原有时钟/文字尺寸，只要符合网格都按原样恢复。
- const size=prior&&validSize(prior.w,prior.h)?{w:prior.w,h:prior.h}:{w:def.w,h:def.h};
- node.hidden=true;track.append(node);
- if(!removed.has(def.id)&&(!def.optional||prior))widgetEntries.push({...entry,...size});
-}
- function drawWidget(id,now=new Date()){
-  const widget=widgets.get(id);if(!widget)return;
-  const settings=widgetSettings.get(id);
-  widget.card?.draw(settings||{},now);widgetUI.applyLook(widget.node,settings?.look);
+  return {node,draw:update};
  }
-function refreshCards(){const now=new Date();for(const id of items.keys())drawWidget(id,now);}
-function returnHome(id){go('home');items.get(id)?.node.focus();}
-function openWidget(id){
- if(!editing||!readable||!items.has(id))return;
- clearGesture(false);go('app-widgets');widgetManager.open(id,true);
-}
-function removeWidget(id){
- if(!editing||!readable||!widgets.has(id)||!items.has(id))return;
- clearGesture(false);
- const item=items.get(id);items.delete(id);removed.add(id);
- if(!persist()){const message=hint.textContent;items.set(id,item);removed.delete(id);render();hint.textContent=message+' 移除未生效。';return;}
- item.node.hidden=true;track.append(item.node);render();widgetManager.refresh();hint.textContent='小组件已移除，内容已保留';
- const next=[...items.values()].find(i=>i.page===current);(next?.node||done).focus();
-}
-function saveWidget(id,{w,h},settings){
- const def=widgets.get(id),item=items.get(id);
- if(!readable)return layoutReadError;
- if(!def||!validSize(w,h))return '请选择有效的小组件尺寸。';
- const probe={...def,w,h},start=item?.page??current;
- const pos=vacancy(probe,start,item?.x??0,item?.y??0,item);
- if(!pos)return '没有可用空位，页面已达上限。';
- const oldPages=pages,oldCurrent=current,wasRemoved=removed.has(id),previousSettings=widgetSettings.get(id);
- const content=widgetUI.clean(id,settings);
- if(!register(probe,pos))return '找不到小组件节点，未保存修改。';
- if(Object.keys(content).length)widgetSettings.set(id,content);else widgetSettings.delete(id);
- removed.delete(id);current=pos.page;
- if(!persist()){
-  const message=hint.textContent;
-  if(item)items.set(id,item);else items.delete(id);
-  if(wasRemoved)removed.add(id);
-  if(previousSettings)widgetSettings.set(id,previousSettings);else widgetSettings.delete(id);
-  pages=oldPages;current=oldCurrent;render();
-  return message+' 修改未生效。';
+ // 原始节点继续给时钟与主题脚本使用；实例用去掉固定 ID 的副本。
+ const sourceNodes=new Map();
+ const sourceBin=document.createElement('div');sourceBin.hidden=true;home.append(sourceBin);
+ for(const def of widgetDefs.filter(d=>d.selector)){
+  const source=home.querySelector(def.selector);if(!source)continue;
+  sourceNodes.set(def.id,source);sourceBin.append(source);
  }
- drawWidget(id);setEdit(false);returnHome(id);
- hint.textContent=`${def.name}小组件已${item?'保存':'添加到桌面'} · 第 ${pos.page+1} 页`;
-}
-const widgetManager=widgetUI.mount({defs:[...widgets.values()],cols:COLS,rows:ROWS,validSize,getItem:id=>items.get(id),getSettings:id=>widgetSettings.get(id),canSave:()=>readable,save:saveWidget,returnHome});
+ function createFromSource(typeId){
+  const source=sourceNodes.get(typeId);if(!source)return null;
+  const node=source.cloneNode(true),originals=[...source.querySelectorAll('[id]')];
+  const fields=[...node.querySelectorAll('[id]')];
+  for(const field of fields){field.dataset.widgetField=field.id;field.removeAttribute('id');}
+  return {node,draw(){fields.forEach((field,i)=>{
+   const value=originals[i].textContent;if(field.textContent!==value)field.textContent=value;
+  });}};
+ }
+ function makeWidget(id,record){
+  const {typeId}=record,def=definitions.get(typeId);
+  const card=def.card?widgetUI.createCard(typeId):def.create?def.create():createFromSource(typeId);
+  if(!card)return null;
+  const {node}=card,entry={...record,id,node,card};
+  node.tabIndex=0;node.removeAttribute('aria-hidden');node.setAttribute('role','group');node.setAttribute('aria-label',`${def.name}小组件`);
+  const control=(className,symbol,label,action)=>{
+   const button=document.createElement('button');button.type='button';button.className=`desktop-widget-control ${className}`;
+   button.textContent=symbol;button.setAttribute('aria-label',`${label}${def.name}小组件`);button.hidden=true;
+   button.addEventListener('click',e=>{e.stopPropagation();action();});node.append(button);return button;
+  };
+  entry.gear=control('desktop-gear','⚙','编辑',()=>openWidget(id));
+  entry.remove=control('desktop-remove','×','移除',()=>removeWidget(id));
+  return entry;
+ }
+ const widgetEntries=[];
+ for(const [id,record] of Object.entries(saved?.widgets??defaultWidgets())){
+  const clean={...record,settings:widgetUI.clean(record.typeId,record.settings)};
+  const entry=!clean.removed&&makeWidget(id,clean);
+  if(entry)widgetEntries.push(entry);else removedWidgets.set(id,{...clean,id});
+ }
+ function drawWidget({card,node,settings},now=new Date()){
+  if(!card)return;
+  card.draw(settings,now);widgetUI.applyLook(node,settings?.look);
+ }
+ function refreshCards(){const now=new Date();for(const item of items.values())drawWidget(item,now);}
+ function returnHome(id,message){
+  const item=items.get(id);
+  if(item&&current!==item.page){current=item.page;render();}
+  go('home');item?.node.focus();if(message)hint.textContent=message;
+ }
+ function openWidget(id){
+  const item=items.get(id);
+  if(!editing||!readable||!item?.typeId)return;
+  clearGesture(false);go('app-widgets');widgetManager.open(item.typeId,id,true);
+ }
+ function refreshManagers(){widgetManager.refresh();themeWidgets?.refresh();}
+ function removeWidget(id,fromDesktop=true){
+  const item=items.get(id);if(!readable)return layoutReadError;
+  if(!item?.typeId||(fromDesktop&&!editing))return '这个小组件已移除。';
+  if(fromDesktop)clearGesture(false);
+  const {typeId,page,x,y,w,h,settings}=item;
+  items.delete(id);removedWidgets.set(id,{id,typeId,page,x,y,w,h,settings});
+  if(!persist()){
+   const message=hint.textContent+' 移除未生效。';items.set(id,item);removedWidgets.delete(id);hint.textContent=message;return message;
+  }
+  item.node.remove();render();refreshManagers();hint.textContent='小组件已移除，内容已保留';
+  if(fromDesktop){const next=[...items.values()].find(i=>i.page===current);(next?.node||done).focus();}
+ }
+ let nextId=0;
+ function allocateId(){
+  let id;do{id=`widget:${Date.now().toString(36)}-${++nextId}`;}while(items.has(id)||removedWidgets.has(id));return id;
+ }
+ function saveWidget(typeId,{w,h},settings,{instanceId,restore=false,stay=false}={}){
+  if(!readable)return {error:layoutReadError};
+  if(!definitions.has(typeId)||!validSize(w,h))return {error:'请选择有效的小组件尺寸。'};
+  const item=instanceId?(restore?removedWidgets:items).get(instanceId):null;
+  if(instanceId&&item?.typeId!==typeId)return {error:'找不到这一个小组件，请返回列表重试。'};
+  const id=instanceId||allocateId(),probe={typeId,w,h,removed:false,settings:widgetUI.clean(typeId,settings)};
+  const start=Number.isInteger(item?.page)&&item.page>=0&&item.page<pages?item.page:current;
+  const pos=vacancy(probe,start,item?.x??0,item?.y??0,item);
+  if(!pos)return {error:'没有可用空位，页面已达上限。'};
+  const oldPages=pages,oldCurrent=current;
+  const entry=item&&!restore?{...item,...probe}:makeWidget(id,probe);
+  if(!entry||!register(entry,pos))return {error:'找不到小组件节点，未保存修改。'};
+  if(restore)removedWidgets.delete(id);
+  if(!stay)current=pos.page;
+  if(!persist()){
+   const error=hint.textContent+' 修改未生效。';
+   if(item&&!restore)items.set(id,item);else items.delete(id);
+   if(restore)removedWidgets.set(id,item);
+   pages=oldPages;current=oldCurrent;hint.textContent=error;return {error};
+  }
+  drawWidget(items.get(id));setEdit(false);refreshManagers();
+  return {id,page:pos.page};
+ }
+ const widgetOptions={defs:widgetDefs,cols:COLS,rows:ROWS,validSize,
+  list:typeId=>[...items.values(),...removedWidgets.values()].filter(item=>item.typeId===typeId),
+  getItem:id=>items.get(id)??removedWidgets.get(id),isRemoved:id=>removedWidgets.has(id),canSave:()=>readable,
+  createInstance:(typeId,size,settings,stay)=>saveWidget(typeId,size,settings,{stay}),
+  updateInstance:(typeId,instanceId,size,settings,stay)=>saveWidget(typeId,size,settings,{instanceId,stay}),
+  restoreInstance:(typeId,instanceId,size,settings,stay)=>saveWidget(typeId,size,settings,{instanceId,restore:true,stay}),
+  removeInstance:id=>removeWidget(id,false),returnHome};
+ const widgetManager=widgetUI.mount(widgetOptions);
+ const themeWidgets=document.getElementById('themeWidgetCatalog')?widgetUI.mount({...widgetOptions,view:'beauty',prefix:'themeWidget'}):null;
 function appEntries(){
  const entries=[];
  for(const node of [...inbox.children]){
@@ -222,12 +290,12 @@ function render(){
 function setEdit(value){
  editing=value;home.classList.toggle('desktop-editing',value);
  done.hidden=!value;toolbar.querySelector('.desktop-create').hidden=!value;
- for(const def of widgets.values())def.gear.hidden=def.remove.hidden=!value||!readable||!items.has(def.id);
+ for(const item of items.values())if(item.typeId)item.gear.hidden=item.remove.hidden=!value||!readable;
  render();
 }
 function newPage(){if(pages>=1000){hint.textContent='页面已达上限';return;}current=pages++;setEdit(true);persist();}
 toolbar.querySelector('.desktop-create').onclick=newPage;
-done.onclick=()=>{clearGesture(false);if(persist()){setEdit(false);hint.textContent='桌面布局已保存';}};
+done.onclick=()=>{clearGesture(false);if(persist()){setEdit(false);widgetManager.refresh();themeWidgets?.showList();hint.textContent='桌面布局已保存';}};
 function clearEdge(){clearTimeout(edgeTimer);edgeTimer=null;stage.querySelectorAll('.desktop-edge').forEach(n=>n.remove());}
 function clearGesture(commit){clearTimeout(gesture&&gesture.timer);clearEdge();if(gesture&&gesture.dragging){if(commit&&target)Object.assign(gesture.item,target);gesture.item.node.classList.remove('desktop-drag-source');}if(gesture){try{home.releasePointerCapture(gesture.pointerId);}catch(e){}}ghost?.remove();stage.querySelector('.desktop-target')?.remove();ghost=null;target=null;gesture=null;edgeLock=0;render();}
 function startDrag(e){if(!gesture||!gesture.item)return;setEdit(true);gesture.dragging=true;try{home.setPointerCapture(gesture.pointerId);}catch(error){}suppressUntil=Date.now()+500;const rect=gesture.item.node.getBoundingClientRect();gesture.offsetX=Math.min(rect.width,Math.max(0,gesture.x-rect.left));gesture.offsetY=Math.min(rect.height,Math.max(0,gesture.y-rect.top));ghost=gesture.item.node.cloneNode(true);ghost.removeAttribute('id');ghost.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));ghost.hidden=false;ghost.classList.add('desktop-ghost');ghost.style.width=rect.width+'px';ghost.style.height=rect.height+'px';ghost.setAttribute('aria-hidden','true');document.body.append(ghost);gesture.item.node.classList.add('desktop-drag-source');moveDrag(e);}
@@ -249,9 +317,12 @@ home.addEventListener('click',e=>{if(isWidgetControl(e))return;if(e.target.close
  home.addEventListener('contextmenu',e=>{if(e.target.closest('.desktop-stage'))e.preventDefault();});
  home.addEventListener('keydown',e=>{if(isWidgetControl(e))return;const node=e.target.closest('.desktop-item');if(!node)return;if(e.key==='F2'){e.preventDefault();setEdit(true);}if(editing&&(e.key==='Enter'||e.key===' ')){e.preventDefault();done.focus();}});
 window.addEventListener('blur',()=>{if(gesture)clearGesture(false);});
-restore([...widgetEntries,...appEntries()]);render();refreshCards();widgetManager.refresh();
-new MutationObserver(records=>{if(records.some(record=>record.addedNodes.length))collect();}).observe(inbox,{childList:true});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshCards();});
-window.addEventListener('pageshow',refreshCards);setInterval(refreshCards,60000);
-window.snowfallDesktop={getLayout:()=>({version:3,pages,current,editing,items:[...items.values()].map(({id,page,x,y,w,h})=>({id,page,x,y,w,h}))})};
+restore([...widgetEntries,...appEntries()]);render();refreshCards();refreshManagers();
+ if(needsMigration)persist();
+ new MutationObserver(records=>{if(records.some(record=>record.addedNodes.length))collect();}).observe(inbox,{childList:true});
+ new MutationObserver(refreshCards).observe(sourceBin,{childList:true,characterData:true,subtree:true});
+ document.querySelector('#app-calendar iframe')?.addEventListener('load',refreshCards);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshCards();});
+ window.addEventListener('pageshow',refreshCards);setInterval(refreshCards,30000);
+ window.snowfallDesktop={getLayout:()=>({version:4,pages,current,editing,items:[...items.values()].map(({id,typeId,page,x,y,w,h})=>({id,typeId,page,x,y,w,h}))})};
 })();

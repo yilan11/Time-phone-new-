@@ -12,13 +12,13 @@ window.snowfallWidgetUI=(()=>{
  const sizeLabel=i=>`${i.w}×${i.h}`;
  const isPreset=({w,h})=>sizes.some(([x,y])=>x===w&&y===h);
 
- function createSizeForm(def,selected,{cols,rows,validSize},onSave,onBack){
+ function createSizeForm(def,selected,{cols,rows,validSize,prefix},onSave,onBack){
   const form=text('form','widget-form widget-size-form'),title=text('h2','',`${def.name}尺寸`),top=text('div','widget-editor-top');
   title.tabIndex=-1;top.append(title,text('p','','左右滑动浏览尺寸预设，点选后保存；也可以填写自定义尺寸。'));
   const field=text('fieldset','widget-size-field'),legend=text('legend','','尺寸（列 × 行）'),choices=text('div','widget-size-choices');
   const help=text('p','widget-size-note',`列数 1–${cols}，行数 1–${rows}，均为整数。`);
-  const feedback=text('p','widget-size-feedback');feedback.id='widgetSizeFeedback';feedback.setAttribute('role','status');
-  help.id='widgetSizeHelp';field.setAttribute('aria-describedby',help.id);
+  const feedback=text('p','widget-size-feedback');feedback.id=prefix+'SizeFeedback';feedback.setAttribute('role','status');
+  help.id=prefix+'SizeHelp';field.setAttribute('aria-describedby',help.id);
   function message(value='',invalid=false){feedback.textContent=value;feedback.classList.toggle('is-error',invalid);}
   function confirm(size){onSave(size);message(`尺寸已保存为 ${sizeLabel(size)}，可返回编辑组件。`);}
   function radio(value,checked){const input=text('input');input.type='radio';input.name='widget-size';input.value=value;input.checked=checked;return input;}
@@ -80,6 +80,9 @@ window.snowfallWidgetUI=(()=>{
  const looks=new Map([['default','原样式'],['glass','液态玻璃背景'],['white','纯白背景'],['paper','便签背景'],['custom','自定义风格']]);
  const maxBG=200000,maxCSS=4000;
  const bgValid=value=>photoValid(value)&&value.length<=maxBG;
+ const bigTextLimit=120,bigTextColor='#25354a',bigTextBGColor='#edf4fa';
+ const bigTextLooks=new Map([['default','透明背景'],['solid','纯色背景'],['image','图片背景']]);
+ const validColor=value=>typeof value==='string'&&/^#[a-f\d]{6}$/i.test(value);
  const visualProps=new Set(('background background-color background-image background-size background-position background-repeat '+
   'color border border-color border-width border-style border-radius box-shadow text-shadow font-size font-weight font-family letter-spacing '+
   'backdrop-filter -webkit-backdrop-filter').split(' '));
@@ -102,9 +105,30 @@ window.snowfallWidgetUI=(()=>{
   }
   return rules;
  }
+ // 只接收项目自带头像或本地压缩的头像，不接收任意链接。
+ const panelAvatar='snowfall-assets/widget-panel-avatar.png',panelColor='#b9dce4',panelTextLimit=120;
+ const panelAvatarValid=value=>typeof value==='string'&&value.length<=100000&&photoValid(value);
  function clean(id,value){
+  if(id==='panel'){
+   const {text:message,avatarSrc,panelColor:color}=value??{};
+   return {
+    text:typeof message==='string'?message.slice(0,panelTextLimit).replace(/[\uD800-\uDBFF]$/u,''):'',
+    avatarSrc:panelAvatarValid(avatarSrc)?avatarSrc:panelAvatar,
+    panelColor:validColor(color)?color:panelColor
+   };
+  }
   if(!value||typeof value!=='object')return {};
   const result={};
+  if(id==='bigtext'){
+   result.text=typeof value.text==='string'?value.text.slice(0,bigTextLimit).replace(/[\uD800-\uDBFF]$/u,''):'';
+   result.textColor=validColor(value.textColor)?value.textColor:bigTextColor;
+   if(value.backgroundMode==='solid'){
+    result.backgroundMode='solid';result.backgroundColor=validColor(value.backgroundColor)?value.backgroundColor:bigTextBGColor;
+   }else if(value.backgroundMode==='image'&&bgValid(value.backgroundImage)){
+    result.backgroundMode='image';result.backgroundImage=value.backgroundImage;
+   }
+   return result;
+  }
   if(id==='memo')result.text=typeof value.text==='string'?value.text.slice(0,500):'';
   if(id==='photo'&&photoValid(value.src))result.src=value.src;
   if(id==='countdown')Object.assign(result,{title:typeof value.title==='string'?value.title.slice(0,28):'',date:localDate(value.date)?value.date:''});
@@ -137,8 +161,49 @@ window.snowfallWidgetUI=(()=>{
    }
    appliedLooks.set(node,{look,props});
   }
-  function createCard(id){
-  const node=text('div',`snow-widget-card snow-${id}`),kicker=text('span','snow-widget-kicker'),main=text('strong','snow-widget-main'),sub=text('span','snow-widget-sub');
+  function createBigTextCard(){
+   const node=text('div','snow-widget-card snow-bigtext'),content=text('strong','snow-widget-bigtext-content');
+   node.append(content);
+   return {node,draw(settings){
+    const value=clean('bigtext',settings),message=value.text;
+    if(content.textContent!==message){
+     content.textContent=message;
+     const length=message.length+6*(message.split('\n').length-1);
+     content.dataset.density=length>60?'long':length>18?'medium':'short';
+    }
+    node.style.color=value.textColor;
+    if(value.backgroundMode==='solid')node.style.setProperty('--bigtext-bg',value.backgroundColor);
+    else if(value.backgroundMode==='image')node.style.setProperty('--bigtext-bg',`url("${value.backgroundImage}")`);
+    else node.style.removeProperty('--bigtext-bg');
+   }};
+  }
+   function createPanelCard(){
+    const node=text('div','snow-widget-card snow-panel'),content=text('div','snow-panel-content');
+    const avatar=text('img','snow-panel-avatar'),message=text('p','snow-panel-text');
+    avatar.alt='面板头像';avatar.draggable=false;
+    content.append(avatar,message);node.append(content);
+    for(const className of ['snow-panel-corner is-top','snow-panel-corner is-bottom','snow-panel-dot']){
+     const decoration=text('span',className);decoration.setAttribute('aria-hidden','true');node.append(decoration);
+    }
+    function linear(channel){return channel<=.04045?channel/12.92:((channel+.055)/1.055)**2.4;}
+    return {node,draw(settings){
+     const value=clean('panel',settings);
+     if(avatar.getAttribute('src')!==value.avatarSrc)avatar.src=value.avatarSrc;
+     if(message.textContent!==value.text)message.textContent=value.text;
+     message.hidden=!value.text.trim();
+     if(node.style.getPropertyValue('--panel-color')!==value.panelColor){
+      const [r,g,b]=[1,3,5].map(i=>linear(parseInt(value.panelColor.slice(i,i+2),16)/255));
+      const light=.2126*r+.7152*g+.0722*b;
+      node.style.setProperty('--panel-color',value.panelColor);
+      node.style.setProperty('--panel-ink',light<.179?'#fff':light<.47?'#171f24':'#3b4a52');
+      node.style.setProperty('--panel-line',light<.179?'#eee':light<.47?'#3b4a52':'#6b6b6b');
+     }
+    }};
+   }
+   function createCard(id){
+    if(id==='bigtext')return createBigTextCard();
+    if(id==='panel')return createPanelCard();
+   const node=text('div',`snow-widget-card snow-${id}`),kicker=text('span','snow-widget-kicker'),main=text('strong','snow-widget-main'),sub=text('span','snow-widget-sub');
   let image,bar;
   if(id==='photo'){image=text('img','snow-widget-image');image.draggable=false;node.append(image,kicker);}
   else{node.append(kicker,main,sub);if(id==='year'){bar=text('progress','snow-widget-progress');bar.max=100;bar.setAttribute('aria-label','本年度已过去的比例');node.append(bar);}}
@@ -179,74 +244,178 @@ window.snowfallWidgetUI=(()=>{
    throw Error('照片压缩失败。');
   }finally{URL.revokeObjectURL(url);}
  }
- function mount({defs,cols,rows,validSize,getItem,getSettings,canSave,save,returnHome}){
-  const catalog=document.getElementById('widgetCatalog'),editor=document.getElementById('widgetEditor'),tip=document.getElementById('widgetIntro');
-  const status=document.getElementById('widgetStatus'),back=document.querySelector('#app-widgets header .back'),cards=new Map();
+ function mountBigText(draft,form,labelField,isCurrent,setBusy){
+  const content=text('textarea'),ink=text('input'),mode=text('select'),fill=text('input'),image=text('input');
+  const appearance=text('fieldset','widget-look widget-bigtext-look'),imageFields=text('div','widget-look-custom');
+  const previewArea=text('div','widget-bigtext-preview-area'),preview=createBigTextCard();
+  const imageStatus=text('p','widget-size-note');imageStatus.setAttribute('role','status');
+  content.maxLength=bigTextLimit;content.rows=3;content.value=draft.text||'';content.placeholder='输入想显示在桌面上的文字…';
+  ink.type=fill.type='color';ink.value=draft.textColor||bigTextColor;fill.value=draft.backgroundColor||bigTextBGColor;
+  image.type='file';image.accept='image/*';
+  for(const [value,label] of bigTextLooks){const option=text('option','',label);option.value=value;mode.append(option);}
+  mode.value=draft.backgroundMode||'default';
+  let turn=0;
+  function resetUpload(){
+   turn++;image.value='';setBusy(false);
+   remove.disabled=!draft.backgroundImage;
+   imageStatus.textContent=draft.backgroundImage?'已设置背景图片':'未选择图片时显示透明背景';
+  }
+  function update(){
+   draft.text=content.value;draft.textColor=ink.value;draft.backgroundMode=mode.value;draft.backgroundColor=fill.value;
+   fill.parentElement.hidden=mode.value!=='solid';imageFields.hidden=mode.value!=='image';
+   preview.draw({...draft,text:draft.text.trim()?draft.text:'大字预览'});
+  }
+  const remove=button('移除背景图片',()=>{
+   delete draft.backgroundImage;mode.value='default';resetUpload();update();mode.focus();
+  });
+  image.addEventListener('change',async()=>{
+   const file=image.files[0];if(!file)return;
+   const reading=++turn;setBusy(true);remove.disabled=false;imageStatus.textContent='正在读取背景图片…';
+   try{
+    const src=await importPhoto(file,bgValid);if(!isCurrent()||reading!==turn)return;
+    draft.backgroundImage=src;imageStatus.textContent='已设置背景图片';update();
+   }catch(err){
+    if(isCurrent()&&reading===turn)imageStatus.textContent=`${err.message||'无法读取背景图片。'} ${draft.backgroundImage?'原背景未更改。':'未选择图片时显示透明背景。'}`;
+   }finally{
+    if(isCurrent()&&reading===turn){image.value='';remove.disabled=!draft.backgroundImage;setBusy(false);}
+   }
+  });
+  for(const input of [content,ink,fill])input.addEventListener('input',update);
+  mode.addEventListener('change',()=>{if(mode.value!=='image')resetUpload();update();});
+  labelField(`大字内容（最多 ${bigTextLimit} 字）`,content);
+  appearance.append(text('legend','','大字外观'));
+  labelField('文字颜色',ink,appearance);labelField('背景模式',mode,appearance);labelField('背景颜色',fill,appearance);
+  labelField('选择背景图片（仅保存在本机）',image,imageFields);imageFields.append(imageStatus,remove);
+  previewArea.append(text('p','widget-size-note','实时预览'),preview.node);
+  appearance.append(imageFields,previewArea);form.append(appearance);resetUpload();update();
+ }
+ function mountPanel(draft,form,labelField,isCurrent,setBusy){
+  Object.assign(draft,clean('panel',draft));
+  const fields=text('fieldset','widget-look widget-panel-fields');
+  const message=text('textarea'),color=text('input'),image=text('input');
+  const status=text('p','widget-size-note'),previewArea=text('div','widget-panel-preview'),preview=createPanelCard();
+  status.setAttribute('role','status');
+  message.maxLength=panelTextLimit;message.rows=3;message.value=draft.text;message.placeholder='输入想显示在面板上的文字…';
+  color.type='color';color.value=draft.panelColor;
+  image.type='file';image.accept='image/*';
+  let turn=0;
+  const reset=button('恢复默认头像',()=>{
+   turn++;image.value='';draft.avatarSrc=panelAvatar;setBusy(false);
+   status.textContent='正在使用默认头像';preview.draw(draft);image.focus();reset.disabled=true;
+  });
+  const hasCustomAvatar=()=>draft.avatarSrc!==panelAvatar;
+  status.textContent=hasCustomAvatar()?'已设置自选头像':'正在使用默认头像';
+  reset.disabled=!hasCustomAvatar();
+  image.addEventListener('change',async()=>{
+   const file=image.files[0];if(!file)return;
+   const reading=++turn;setBusy(true);reset.disabled=false;status.textContent='正在读取头像…';
+   try{
+    const src=await importPhoto(file,panelAvatarValid);if(!isCurrent()||reading!==turn)return;
+    draft.avatarSrc=src;status.textContent='已设置自选头像';preview.draw(draft);
+   }catch(err){
+    if(isCurrent()&&reading===turn)status.textContent=`${err.message||'无法读取头像。'} 原头像未更改。`;
+   }finally{
+    if(isCurrent()&&reading===turn){image.value='';reset.disabled=!hasCustomAvatar();setBusy(false);}
+   }
+  });
+  function update(){draft.text=message.value;draft.panelColor=color.value;preview.draw(draft);}
+  message.addEventListener('input',update);color.addEventListener('input',update);color.addEventListener('change',update);
+  fields.append(text('legend','','面板设置'));
+  labelField(`面板文字（最多 ${panelTextLimit} 字）`,message,fields);
+  labelField('面板颜色',color,fields);
+  labelField('选择头像（仅保存在本机）',image,fields);
+  previewArea.append(text('p','widget-size-note','实时预览'),preview.node);
+  fields.append(status,reset,previewArea);form.append(fields);update();
+ }
+ function mount({defs,cols,rows,validSize,list,getItem,isRemoved,canSave,createInstance,updateInstance,restoreInstance,removeInstance,returnHome,view='app-widgets',prefix='widget'}){
+  const field=name=>document.getElementById(prefix+name);
+  const catalog=field('Catalog'),editor=field('Editor'),tip=field('Intro');
+  const status=field('Status'),back=document.querySelector(`#${view} header .back`),cards=new Map();
   const scroll=editor.closest('.scroll');
   let ticket=0,stepBack=null;
+  const stay=view==='beauty';
+  function details(item){
+   const content=item.settings?.text||item.settings?.title||item.settings?.date;
+   return [isRemoved(item.id)?'已移除':`第 ${item.page+1} 页 · 第 ${item.y+1} 行、第 ${item.x+1} 列`,sizeLabel(item),content?.trim().slice(0,32)].filter(Boolean).join(' · ');
+  }
   function refresh(){
-   for(const [id,{badge,action}] of cards){
-    const item=getItem(id);badge.textContent=item?`${sizeLabel(item)} · 第 ${item.page+1} 页`:'未添加';
-    action.textContent=item?'编辑':'选尺寸';action.disabled=!canSave(id);
-    action.setAttribute('aria-label',`${item?'编辑':'选择尺寸并添加'}${defs.find(d=>d.id===id).name}小组件`);
+   for(const [id,{badge,action,instances,def}] of cards){
+    const entries=list(id),active=entries.filter(item=>!isRemoved(item.id)).length;
+    badge.textContent=`桌面 ${active} 个`+(entries.length>active?` · 已移除 ${entries.length-active} 个`:'');
+    action.disabled=!canSave();instances.replaceChildren();
+    for(const [i,item] of entries.entries()){
+     const row=text('li','widget-instance'),label=text('small','',`#${i+1} · ${details(item)}`);
+     const edit=button(isRemoved(item.id)?'恢复…':'编辑',()=>open(id,item.id));
+     edit.disabled=!canSave();edit.setAttribute('aria-label',`${edit.textContent}${def.name}小组件 #${i+1}`);
+     row.append(label,edit);instances.append(row);
+    }
+    instances.hidden=!entries.length;
    }
   }
   function showList(focusId){
-   ticket++;stepBack=null;back.setAttribute('aria-label','返回桌面');
+   ticket++;stepBack=null;back.setAttribute('aria-label','返回桌面');delete editor.dataset.backLabel;
    editor.hidden=true;editor.replaceChildren();catalog.hidden=false;tip.hidden=false;status.textContent='';refresh();
    if(focusId)cards.get(focusId)?.action.focus();
   }
   function showStep(form,focus,onBack,backLabel){
-   stepBack=onBack;back.setAttribute('aria-label',backLabel);
+   stepBack=onBack;editor.dataset.backLabel=backLabel;back.setAttribute('aria-label',backLabel);
    status.textContent='';tip.hidden=true;catalog.hidden=true;
    editor.replaceChildren(form);editor.hidden=false;scroll.scrollTop=0;focus.focus();
   }
   back.addEventListener('click',e=>{
-   if(!stepBack)return;
+   if(!stepBack||scroll.hidden)return;
    e.stopImmediatePropagation();stepBack();
   },true);
-  function open(id,direct=false){
-   const def=defs.find(d=>d.id===id);if(!def||!canSave(id))return;
-   const seq=++ticket,item=getItem(id),draft={...getSettings(id)};
+  function open(id,instanceId=null,direct=false){
+   const def=defs.find(d=>d.id===id);if(!def||!canSave())return;
+   const item=instanceId?getItem(instanceId):null;
+   if(instanceId&&item?.typeId!==id)return;
+   const removed=item&&isRemoved(instanceId),seq=++ticket,draft={...item?.settings};
    const {w,h}=item||def;
    let selected=validSize(w,h)?{w,h}:{w:1,h:1};
    const form=text('form','widget-form widget-content-form'),title=text('h2','',`${def.icon} ${def.name}`),top=text('div','widget-editor-top');
-   title.tabIndex=-1;top.append(title,text('p','',def.description));form.append(top);
+   title.tabIndex=-1;top.append(title,text('p','',item?details(item):def.description));form.append(top);
    const sizeArea=text('div','widget-content-size'),sizeSummary=text('strong'),sizeNote=text('p','widget-size-note','当前页放不下时，会找其他有空位的页面。');
    const changeSize=button('调整尺寸',()=>showSizes(true));
    sizeArea.append(sizeSummary,changeSize,sizeNote);form.append(sizeArea);
    const leaveLabel=direct?'返回桌面':'返回小组件列表';
-   function leave(){showList(direct?null:id);if(direct)returnHome(id);}
+   function leave(){showList(direct?null:id);if(direct)returnHome(instanceId);}
    function showContent(focus=title){
     sizeSummary.textContent=`当前尺寸：${sizeLabel(selected)}（列 × 行）`;
     showStep(form,focus,leave,leaveLabel);
    }
    function showSizes(fromContent=false){
     const backToContent=()=>showContent(fromContent?changeSize:title);
-    const sizeForm=createSizeForm(def,selected,{cols,rows,validSize},size=>{selected=size;},backToContent);
+    const sizeForm=createSizeForm(def,selected,{cols,rows,validSize,prefix},size=>{selected=size;},backToContent);
     showStep(sizeForm.form,sizeForm.title,backToContent,'返回编辑组件');
     sizeForm.revealSelected();
    }
    const labelField=(caption,input,parent=form)=>{const label=text('label','widget-form-field');label.append(text('span','',caption),input);parent.append(label);};
-   const actions=text('div','widget-editor-actions'),submit=text('button','widget-primary',item?'保存修改':'添加到桌面');submit.type='submit';
+   const actions=text('div','widget-editor-actions');
+   const submit=text('button','widget-primary',removed?'恢复到桌面':item?'保存修改':'添加到桌面');submit.type='submit';
+   const add=item?text('button','','添加到桌面'):null;if(add)add.type='submit';
    const cancel=button(leaveLabel,leave);
    const error=text('p','widget-form-error');error.setAttribute('role','status');
-   const lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
-   let readingPhoto=false,readingBackground=false;
-   function updateSubmit(){submit.disabled=readingPhoto||(kind.value==='custom'&&readingBackground);}
-   if(id==='memo'){
+   let readingContentImage=false,readingBackground=false,customLookActive=false;
+   function updateSubmit(){submit.disabled=readingContentImage||(customLookActive&&readingBackground);if(add)add.disabled=submit.disabled;}
+   function setContentImageBusy(busy){readingContentImage=busy;updateSubmit();}
+   if(id==='bigtext'){
+mountBigText(draft,form,labelField,()=>seq===ticket,setContentImageBusy);
+    }else if(id==='panel'){
+     mountPanel(draft,form,labelField,()=>seq===ticket,setContentImageBusy);
+    }else if(id==='memo'){
     const content=text('textarea');content.maxLength=500;content.rows=4;content.value=draft.text||'';content.placeholder='记一件想随时看到的小事…';
     content.addEventListener('input',()=>{draft.text=content.value;});labelField('便签内容（最多 500 字）',content);
    }else if(id==='photo'){
     const input=text('input'),photo=text('img','widget-photo-preview');photo.alt='照片预览';photo.src=draft.src||photoDefault;
     input.type='file';input.accept='image/*';let change=0;
-const reset=button('使用默认小猫',()=>{change++;input.value='';delete draft.src;photo.src=photoDefault;readingPhoto=false;updateSubmit();error.textContent='';});
+const reset=button('使用默认小猫',()=>{change++;input.value='';delete draft.src;photo.src=photoDefault;setContentImageBusy(false);error.textContent='';});
      input.addEventListener('change',async()=>{
       const file=input.files[0];if(!file)return;
-      const turn=++change;readingPhoto=true;updateSubmit();error.textContent='正在读取照片…';
+      const turn=++change;setContentImageBusy(true);error.textContent='正在读取照片…';
       try{const src=await importPhoto(file);if(seq!==ticket||turn!==change)return;draft.src=src;photo.src=src;error.textContent='';}
       catch(err){if(seq===ticket&&turn===change)error.textContent=`${err.message||'无法读取照片'} 原照片未更改。`;}
-      finally{if(seq===ticket&&turn===change){readingPhoto=false;updateSubmit();input.value='';}}
+      finally{if(seq===ticket&&turn===change){setContentImageBusy(false);input.value='';}}
      });
     labelField('选择设备里的照片（仅保存在本机）',input);form.append(photo,reset);
    }else if(id==='countdown'){
@@ -254,7 +423,10 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     date.type='date';date.required=true;date.min='0001-01-01';date.max='9999-12-31';date.value=draft.date||'';
     name.addEventListener('input',()=>{draft.title=name.value;});date.addEventListener('input',()=>{draft.date=date.value;});labelField('事件名称',name);labelField('目标日期',date);
    }
-   lookField.append(text('legend','','小组件外观'));
+   let readLook=()=>undefined;
+   if(id!=='bigtext'){
+    const lookField=text('fieldset','widget-look'),kind=text('select'),custom=text('div','widget-look-custom');
+    lookField.append(text('legend','','小组件外观'));
    for(const [value,label] of looks){const option=text('option','',label);option.value=value;kind.append(option);}
    kind.value=draft.look?.kind||'default';labelField('外观风格',kind,lookField);
    const preview=text('div','widget-style-preview'),previewLabel=text('small');
@@ -262,7 +434,7 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
    const bgInput=text('input'),cssInput=text('textarea');
    const bgStatus=text('p','widget-size-note'),cssStatus=text('p','widget-form-error');
    bgStatus.setAttribute('role','status');cssStatus.setAttribute('role','status');
-   cssStatus.id='widgetLookCSSStatus';cssInput.setAttribute('aria-describedby',cssStatus.id);
+   cssStatus.id=prefix+'LookCSSStatus';cssInput.setAttribute('aria-describedby',cssStatus.id);
    bgInput.type='file';bgInput.accept='image/*';
    cssInput.rows=3;cssInput.maxLength=maxCSS;cssInput.spellcheck=false;
    cssInput.placeholder='例如：color: #334155; border-radius: 12px;';
@@ -274,7 +446,7 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
     return {kind:'custom',bg:background,css:cssInput.value.trim()};
    }
    function updatePreview(){
-    const look=candidate();custom.hidden=look?.kind!=='custom';
+    const look=candidate();customLookActive=look?.kind==='custom';custom.hidden=!customLookActive;
     previewLabel.textContent=looks.get(kind.value);
     cssStatus.textContent='';cssInput.removeAttribute('aria-invalid');
     try{if(look?.css)parseLookCSS(look.css);}
@@ -303,22 +475,49 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
    labelField('选择背景图片（仅保存在本机）',bgInput,custom);custom.append(bgStatus,removeBG);
    labelField('自定义 CSS（只填写属性和值）',cssInput,custom);custom.append(cssStatus);
    kind.addEventListener('change',updatePreview);cssInput.addEventListener('input',updatePreview);
-   lookField.append(custom,preview);updatePreview();
-   actions.append(cancel,submit);form.append(lookField,error,actions);
+   lookField.append(custom,preview);form.append(lookField);updatePreview();
+   readLook=()=>{
+    const look=candidate();
+    try{if(look?.css)parseLookCSS(look.css);}
+    catch(err){cssStatus.textContent=err.message;cssInput.setAttribute('aria-invalid','true');cssInput.focus();return false;}
+    return look;
+   };
+   }
+   actions.append(submit);if(add)actions.append(add);actions.append(cancel);
+   if(item&&!removed&&!direct)actions.append(button('移除这个小组件',()=>{
+    const problem=removeInstance(instanceId);if(problem){error.textContent=problem;return;}
+    showList(id);status.textContent=`${def.name}小组件已移除，内容仍可恢复。`;
+   }));
+   form.append(error,actions);
    form.addEventListener('submit',e=>{
     e.preventDefault();if(seq!==ticket||submit.disabled||!form.isConnected)return;
     if(id==='countdown'&&!localDate(draft.date)){error.textContent='请输入有效的目标日期。';return;}
-    const look=candidate();
-    try{if(look?.css)parseLookCSS(look.css);}
-    catch(err){cssStatus.textContent=err.message;cssInput.setAttribute('aria-invalid','true');cssInput.focus();return;}
-    const problem=save(id,selected,clean(id,{...draft,look}));if(problem){error.textContent=problem;return;}
-    showList();
+    const look=readLook();if(look===false)return;
+    const settings=clean(id,{...draft,look}),creating=!item||e.submitter===add;
+    const result=creating?createInstance(id,selected,settings,stay):removed?restoreInstance(id,instanceId,selected,settings,stay):updateInstance(id,instanceId,selected,settings,stay);
+    if(result.error){error.textContent=result.error;return;}
+    showList(stay?id:null);
+    const message=`${def.name}小组件已${creating?'添加到桌面':removed?'恢复':'保存'} · 第 ${result.page+1} 页`;
+    if(stay)status.textContent=message;else returnHome(result.id,message);
    });
    if(item)showContent();else showSizes();
   }
   for(const def of defs){
-   const card=text('article','widget-choice'),info=text('div','widget-choice-info'),label=text('h2','',def.name),badge=text('small','widget-choice-badge'),action=button('',()=>open(def.id));
-   info.append(label,text('p','',def.description),badge);card.append(text('span','widget-choice-icon',def.icon),info,action);catalog.append(card);cards.set(def.id,{badge,action});
+   const group=text('section','widget-type'),card=text('article','widget-choice'),info=text('div','widget-choice-info');
+   const label=text('h2','',def.name),badge=text('small','widget-choice-badge'),action=button('新增',()=>open(def.id));
+   action.setAttribute('aria-label',`新增${def.name}小组件`);
+   const instances=text('ul','widget-instances');instances.setAttribute('aria-label',`${def.name}小组件列表`);
+   info.append(label,text('p','',def.description),badge);card.append(text('span','widget-choice-icon',def.icon),info,action);
+    group.append(card);
+    if(stay&&def.id==='photo'){
+     const preview=text('figure','widget-photo-example'),image=text('img');
+     image.src='snowfall-assets/widget-photo-poem-preview.jpg';
+     image.alt='把今天写成一行诗：暖白纸面上的手写笔触和对角括线';
+     image.width=960;image.height=1124;image.loading='lazy';image.decoding='async';
+     preview.append(image,text('figcaption','widget-size-note','图片小组件示例 · 不会替换桌面照片'));
+     group.append(preview);
+    }
+    group.append(instances);catalog.append(group);cards.set(def.id,{badge,action,instances,def});
   }
   refresh();return {open,refresh,showList};
  }

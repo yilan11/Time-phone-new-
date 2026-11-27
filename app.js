@@ -34,7 +34,15 @@ const controller=new AbortController();const timer=setTimeout(()=>controller.abo
 try{
 const endpoint=apiConfig.base.endsWith('/chat/completions')?apiConfig.base:apiConfig.base+'/chat/completions';
 const history=state.messages.filter(m=>!m.text.startsWith('【演示回复】')).slice(-30).map(m=>({role:m.mine?'user':'assistant',content:m.text}));
-const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:'你在虚构小手机中扮演角色。'+(comm.contacts.find(c=>c.id===activeContact)?.persona||'温和自然的阿遥')+'。不要声称能在网页关闭后行动、看到现实环境或主动推送消息。'},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
+let systemPrompt='你在虚构小手机中扮演角色。'+(comm.contacts.find(c=>c.id===activeContact)?.persona||'温和自然的阿遥')+'。不要声称能在网页关闭后行动、看到现实环境或主动推送消息。';
+if(activeContact==='kk')systemPrompt+=`
+用户问到雪落机美化时，按以下实际输入限制给出可手动复制的内容。未指定目标且无法判断时，问清是桌面、App 图标还是哪一种小组件。标注粘贴位置和保存步骤；不同输入框的片段分开。你只能给建议，不能声称自动修改或保存项目，也不能声称已发布或已替用户应用。
+桌面：主题 → 桌面美化 → 全局主题 CSS → 配色与文字，最多 1600 字符，仅允许 --ice-text、--ice-muted、--ice-50、--ice-100、--ice-200、--ice-300、--ice-glass、--ice-border、--ice-dock、--theme-accent，值必须是颜色，不用渐变。标题（30 字）、小字（60 字）、纯色背景和统一图标底色属于独立控件。填好后点「保存桌面美化」。
+App：在主题 → App 美化选中 App，仅改桌面图标，不改 App 内部页面。图标形态选「自定义代码」后填写「形态 CSS」，最多 1000 字符，仅允许 border-radius、clip-path；「图标内部 CSS」单独填写，最多 1600 字符，仅允许 color、background、background-color、background-image、border、border-color、border-style、box-shadow，背景可用纯色或渐变。页面专属的完整 CSS 文件不能粘贴到这些框。填好后点「保存当前 App 图标」。
+普通小组件：打开组件编辑器，在「自定义风格 → 自定义 CSS」填写，最多 4000 字符，仅允许 background、background-color、background-image、background-size、background-position、background-repeat、color、border、border-color、border-width、border-style、border-radius、box-shadow、text-shadow、font-size、font-weight、font-family、letter-spacing、backdrop-filter、-webkit-backdrop-filter。需要图片时用上传控件，最后在编辑器保存。
+大字组件不用 CSS：「大字内容」最多 120 字，只填文字；「文字颜色」用颜色控件（给 #RRGGBB 值）；「背景模式」选透明、纯色或图片，纯色填「背景颜色」，图片由用户上传，最后在编辑器保存。
+用于粘贴的 CSS 只给“属性: 值;”，不要添加选择器、:root、大括号、引号、HTML、脚本、url()、var() 或外部链接。使用可识别的 CSS 值，比如六位十六进制色值；说明文字写在代码片段之外。`;
+const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:systemPrompt},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
 if(!response.ok)throw new Error('接口返回 HTTP '+response.status+'。'+({401:'请检查密钥。',403:'请检查接口权限。',404:'请检查地址和模型名称。',429:'请求过多或额度不足。'}[response.status]||'请检查服务商状态。'));
 const data=await response.json();const reply=data?.choices?.[0]?.message?.content;if(typeof reply!=='string'||!reply.trim())throw new Error('接口没有返回可显示的文字，请检查模型是否支持 Chat Completions。');
 message(reply.trim(),false);apiStatus('AI 回复成功。');
@@ -44,27 +52,7 @@ function renderPosts(){const box=$('posts');box.replaceChildren();state.posts.fo
 function renderNotices(){const box=$('notices');box.replaceChildren();$('badge').style.display=state.notices.some(n=>!n.read)?'block':'none';state.notices.forEach(n=>{const item=el('div','notice-item'+(!n.read?' unread':''),n.text);item.tabIndex=0;item.setAttribute('role','button');const open=()=>{n.read=true;save();renderNotices();go(n.target)};item.addEventListener('click',open);item.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});box.append(item)});if(!state.notices.length)box.append(el('p','','还没有通知'))}
 $('reset').addEventListener('click',()=>{if(chatBusy){alert('请等当前回复结束后再清除。');return}if(!confirm('确定清除本机演示数据吗？此操作不可撤销。'))return;state=initial();save();if(window.commPersist)window.commPersist();renderAll();go('home')});
 function renderAll(){renderMessages();renderPosts();renderNotices()}renderAll();
-// 美化只修改独立配置，不改写聊天或接口数据。
-const BEAUTY_KEY='little-phone-beauty-v1';
-const beautyDefault={title:'把日子过成喜欢的样子',subtitle:'留一点空白，等故事发生。',bg:'wallpaper',icon:'#eeeeee',size:'16'};
-let beauty={...beautyDefault};
-try{const v=JSON.parse(localStorage.getItem(BEAUTY_KEY));if(v&&typeof v==='object')beauty={...beauty,...v}}catch{}
 function persist(key,value,statusId){try{localStorage.setItem(key,JSON.stringify(value));return true}catch{$(statusId).textContent='保存失败：浏览器存储空间不足或不允许保存，请先保留重要内容。';return false}}
-function applyBeauty(){
-  $('homeTitle').textContent=beauty.title;$('homeSubtitle').textContent=beauty.subtitle;
-  const home=$('home');
-  const wallpaper=beauty.bg==='wallpaper';
-  const solidBg=/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#dfe8f4';
-  // 壁纸资源由首页样式统一管理；仅在纯色模式覆盖首页背景。
-  home.dataset.homeBackground=wallpaper?'wallpaper':'solid';
-  if(wallpaper) home.style.removeProperty('--home-bg');
-  else home.style.setProperty('--home-bg',solidBg);
-  document.documentElement.style.setProperty('--icon-bg',/^#[0-9a-f]{6}$/i.test(beauty.icon)?beauty.icon:'#eeeeee');
-  document.documentElement.style.setProperty('--reading-size',['14','16','18'].includes(beauty.size)?beauty.size+'px':'16px');
-  $('beautyTitle').value=beauty.title;$('beautySubtitle').value=beauty.subtitle;$('beautyBg').value=wallpaper?'#dfe8f4':(/^#[0-9a-f]{6}$/i.test(beauty.bg)?beauty.bg:'#ffffff');$('beautyWallpaper').checked=wallpaper;$('beautyIcon').value=beauty.icon;$('beautySize').value=beauty.size;
-}
-$('beautyForm').addEventListener('submit',e=>{e.preventDefault();const title=$('beautyTitle').value.trim();if(!title){$('beautyStatus').textContent='请填写桌面标题。';return}const next={title,subtitle:$('beautySubtitle').value.trim(),bg:$('beautyWallpaper').checked?'wallpaper':$('beautyBg').value,icon:$('beautyIcon').value,size:$('beautySize').value};if(persist(BEAUTY_KEY,next,'beautyStatus')){beauty=next;applyBeauty();$('beautyStatus').textContent='外观已保存，回到桌面就能看到。'}});
-$('beautyDefault').addEventListener('click',()=>{if(persist(BEAUTY_KEY,beautyDefault,'beautyStatus')){beauty={...beautyDefault};applyBeauty();$('beautyStatus').textContent='已恢复默认壁纸、液态玻璃图标和默认文字。'}});applyBeauty();
 
 // 相遇拥有独立的剧情设定与历史，使用设置页同一接口。
 const STORY_KEY='little-phone-encounter-v1';
