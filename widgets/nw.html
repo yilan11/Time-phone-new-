@@ -35,9 +35,12 @@
     overflow: hidden;
   }
   .nw .txt {
-    width: 100%;
-    max-height: 100%;
-    padding: 10% 8%;
+    writing-mode: vertical-rl;   /* 字从上往下竖着排，换行往左 */
+    text-orientation: upright;
+    height: 100%;
+    max-width: 100%;
+    padding: 10px 8px;
+    letter-spacing: .12em;
     box-sizing: border-box;
     color: var(--ink);
     font-size: clamp(12px, 7cqmin, 28px);
@@ -46,7 +49,7 @@
     word-break: break-word;
     white-space: pre-wrap;
     outline: none;
-    overflow-y: auto;
+    overflow-x: auto;
   }
   .nw .txt:empty::before { content: attr(data-ph); opacity: .45; }  /* 清空后显示提示字 */
   /* 左上、右下两个角框（伸出蓝色区域外面） */
