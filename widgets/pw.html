@@ -1,130 +1,82 @@
-<div class="pw" id="pw">
-  <div class="card">
-    <label class="pic" id="pic1">
-      <input type="file" accept="image/*" data-k="pwImg1">
-      <span class="hint">+</span>
-    </label>
-    <div class="name" contenteditable="true" data-k="pwName1">名字</div>
-  </div>
-
-  <svg class="beat" viewBox="0 0 100 60" preserveAspectRatio="none">
-    <polyline points="0,38 14,38 18,22 25,52 32,4 40,54 45,26 50,52 55,12 58,38 100,38" />
-  </svg>
-
-  <div class="card">
-    <label class="pic" id="pic2">
-      <input type="file" accept="image/*" data-k="pwImg2">
-      <span class="hint">+</span>
-    </label>
-    <div class="name" contenteditable="true" data-k="pwName2">名字</div>
-  </div>
+<div class="pw">
+  <!-- 两个圆形头像，点击换图 -->
+  <label class="photo a" data-k="pwImg1"><input type="file" accept="image/*"></label>
+  <label class="photo b" data-k="pwImg2"><input type="file" accept="image/*"></label>
+  <!-- 你画的线稿 -->
+  <img class="art" src="https://yilan11.github.io/Time-phone-new-/snowfall-assets/line-art/pw.png" alt="">
+  <!-- 下面格子里的名字，点击修改 -->
+  <div class="nm a" contenteditable="true" data-k="pwName1">名字</div>
+  <div class="nm b" contenteditable="true" data-k="pwName2">名字</div>
 </div>
 
 <style>
   .pw {
-    --line: #5a5a5a;   /* 框和心电图的颜色 */
-    --ink: #4a4a4a;    /* 名字颜色 */
-    --card: #ffffff;   /* 卡片底色 */
+    --ink: #555;          /* 名字颜色 */
+    aspect-ratio: 734 / 388;
+    position: relative;
     width: 100%;
-    height: 100%;
-    min-height: 110px;
-    box-sizing: border-box;
-    padding: 4%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    max-height: 100%;
+    margin: auto;
+    overflow: hidden;
+    container-type: inline-size;
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
-  .pw .card {
-    flex: 0 0 34%;
-    aspect-ratio: 5 / 7;
-    max-height: 100%;
-    background: var(--card);
-    border: 1.5px solid var(--line);
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
+  .pw .art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+  .pw .photo { position: absolute; display: block; background: center / cover no-repeat; cursor: pointer; z-index: 1; }
+  .pw .photo input { display: none; }
+  .pw .photo { border-radius: 50%; }
+  .pw .photo.a { left:3.95%;top:7.99%;width:31.88%;height:66.49%; }
+  .pw .photo.b { left:64.17%;top:6.70%;width:32.15%;height:66.75%; }
+  .pw .nm {
+    position: absolute; z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink); font-size: 3.4cqw; letter-spacing: .3em; line-height: 1;
+    white-space: nowrap; overflow: hidden; outline: none;
   }
-  .pw .pic {
-    flex: 1;
-    margin: 3%;
-    border: 1.5px solid var(--line);
-    border-radius: 50%;
-    background: #f4f4f4 center / cover no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-    aspect-ratio: 1 / 1;
-    align-self: center;
-    max-width: 94%;
-  }
-  .pw .pic input { display: none; }
-  .pw .pic .hint { color: #bbb; font-size: 22px; }
-  .pw .pic.has .hint { display: none; }
-  .pw .name {
-    border-top: 1.5px solid var(--line);
-    padding: 4% 6%;
-    text-align: center;
-    color: var(--ink);
-    font-size: clamp(11px, 3.2vw, 18px);
-    letter-spacing: .3em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    outline: none;
-  }
-  .pw .beat {
-    flex: 1 1 auto;
-    height: 30%;
-    min-width: 30px;
-    overflow: visible;
-  }
-  .pw .beat polyline {
-    fill: none;
-    stroke: var(--line);
-    stroke-width: 1.5;
-    vector-effect: non-scaling-stroke;
-    stroke-linejoin: round;
-  }
+  .pw .nm.a { left:3.54%;top:83.25%;width:32.70%;height:10.57%; }
+  .pw .nm.b { left:63.90%;top:81.96%;width:32.70%;height:11.08%; }
 </style>
 
 <script>
   (function () {
-    var root = document.getElementById('pw');
+    var me = document.currentScript;
+    var root = (me && me.previousElementSibling && me.previousElementSibling.previousElementSibling) || document.querySelector('.pw');
     function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
     function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
-    // 名字：点击修改，自动保存
-    root.querySelectorAll('.name').forEach(function (el) {
+    // 文字：点击修改，自动保存；回车结束编辑；粘贴只保留纯文字
+    root.querySelectorAll('[contenteditable]').forEach(function (el) {
       var v = load(el.dataset.k);
-      if (v !== null && v !== '') el.innerText = v;
-      el.addEventListener('input', function () { save(el.dataset.k, el.innerText); });
+      if (v !== null && v !== '') el.textContent = v;
+      el.addEventListener('input', function () { save(el.dataset.k, el.textContent); });
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+      el.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var t = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, t);
+      });
     });
 
-    // 圆形：点击选图，压缩后保存
-    root.querySelectorAll('.pic').forEach(function (pic) {
-      var input = pic.querySelector('input');
-      var k = input.dataset.k;
-      var saved = load(k);
-      if (saved) { pic.style.backgroundImage = 'url(' + saved + ')'; pic.classList.add('has'); }
+    // 照片：点击导入；1MB 以内存原图，更大的按比例缩小（最长边 1200）
+    root.querySelectorAll('.photo').forEach(function (ph) {
+      var input = ph.querySelector('input'), k = ph.dataset.k, saved = load(k);
+      if (saved) ph.style.backgroundImage = 'url(' + saved + ')';
+      function show(url) { ph.style.backgroundImage = 'url(' + url + ')'; save(k, url); }
       input.addEventListener('change', function () {
         var f = input.files && input.files[0];
         if (!f) return;
-        var img = new Image();
         var reader = new FileReader();
-        reader.onload = function () { img.src = reader.result; };
-        img.onload = function () {
-          var s = Math.min(img.width, img.height), size = 400;
-          var c = document.createElement('canvas');
-          c.width = c.height = size;
-          c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-          var url = c.toDataURL('image/jpeg', 0.85);
-          pic.style.backgroundImage = 'url(' + url + ')';
-          pic.classList.add('has');
-          save(k, url);
+        reader.onload = function () {
+          if (f.size <= 1024 * 1024) { show(reader.result); return; }
+          var img = new Image();
+          img.onload = function () {
+            var s = Math.min(1, 1200 / Math.max(img.width, img.height));
+            var c = document.createElement('canvas');
+            c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            show(c.toDataURL('image/jpeg', 0.92));
+          };
+          img.src = reader.result;
         };
         reader.readAsDataURL(f);
       });

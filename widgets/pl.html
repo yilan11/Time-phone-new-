@@ -1,88 +1,64 @@
-<div class="pl" id="pl">
-  <!-- 照片：放在你画的两个框里 -->
+<div class="pl">
+  <!-- 两张照片，放在你画的框里 -->
   <label class="photo l" data-k="plImg1"><input type="file" accept="image/*"></label>
   <label class="photo r" data-k="plImg2"><input type="file" accept="image/*"></label>
-
-  <!-- 你的原图（线稿），盖在照片上面，白色部分自动透明 -->
-  <img class="art" src="https://beeimg.us.ci/temp/1f95b31926e78c608d0d014b2c0398a7.png" alt="">
-
-  <!-- 两条横线中间的字 -->
+  <!-- 你画的线稿 -->
+  <img class="art" src="https://yilan11.github.io/Time-phone-new-/snowfall-assets/line-art/pl.png" alt="">
+  <!-- 两条横线中间的字，点击修改 -->
   <div class="cap" contenteditable="true" data-k="plTxt">写点什么</div>
 </div>
 
 <style>
   .pl {
     --ink: #555;          /* 字的颜色 */
+    aspect-ratio: 820 / 500;
     position: relative;
     width: 100%;
-    aspect-ratio: 820 / 500;
     max-height: 100%;
     margin: auto;
     overflow: hidden;
-    background: #fff;
     container-type: inline-size;
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
-  .pl .art {
-    position: absolute;
-    width: 182.07%;
-    left: -42.44%;
-    top: -92.6%;
-    max-width: none;
-    mix-blend-mode: multiply;
-    pointer-events: none;
-    z-index: 2;
-  }
-  .pl .photo {
-    position: absolute;
-    width: 24.9%;
-    height: 52%;
-    background: #fff center / cover no-repeat;
-    cursor: pointer;
-    z-index: 1;
-  }
+  .pl .art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+  .pl .photo { position: absolute; display: block; background: center / cover no-repeat; cursor: pointer; z-index: 1; }
+  .pl .photo input { display: none; }
+  .pl .photo { width: 24.9%; height: 52%; }
   .pl .photo.l { left: 10.85%; top: 16.8%; transform: rotate(-7.9deg); }
   .pl .photo.r { left: 64.8%;  top: 15.8%; transform: rotate(8.2deg); }
-  .pl .photo input { display: none; }
   .pl .cap {
-    position: absolute;
-    left: 51.16%;
-    top: 93%;
-    transform: translate(-50%, -50%);
-    max-width: 28%;
-    z-index: 3;
-    text-align: center;
-    color: var(--ink);
-    font-size: 3.6cqw;
-    letter-spacing: .15em;
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    outline: none;
-    min-width: 2em;
+    position: absolute; z-index: 4;
+    left: 51.16%; top: 93%; transform: translate(-50%, -50%);
+    max-width: 28%; min-width: 2em;
+    text-align: center; color: var(--ink);
+    font-size: 3.6cqw; letter-spacing: .15em; line-height: 1.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: none;
   }
 </style>
 
 <script>
   (function () {
-    var root = document.getElementById('pl');
+    var me = document.currentScript;
+    var root = (me && me.previousElementSibling && me.previousElementSibling.previousElementSibling) || document.querySelector('.pl');
     function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
     function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
-    // 两条横线中间的字：点击修改，自动保存
-    root.querySelectorAll('.cap').forEach(function (el) {
+    // 文字：点击修改，自动保存；回车结束编辑；粘贴只保留纯文字
+    root.querySelectorAll('[contenteditable]').forEach(function (el) {
       var v = load(el.dataset.k);
-      if (v !== null && v !== '') el.innerText = v;
-      el.addEventListener('input', function () { save(el.dataset.k, el.innerText); });
+      if (v !== null && v !== '') el.textContent = v;
+      el.addEventListener('input', function () { save(el.dataset.k, el.textContent); });
       el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+      el.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var t = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, t);
+      });
     });
 
-    // 框里的照片：点击导入；1MB 以内存原图，更大的按比例缩小（最长边 1200）
+    // 照片：点击导入；1MB 以内存原图，更大的按比例缩小（最长边 1200）
     root.querySelectorAll('.photo').forEach(function (ph) {
-      var input = ph.querySelector('input');
-      var k = ph.dataset.k;
-      var saved = load(k);
+      var input = ph.querySelector('input'), k = ph.dataset.k, saved = load(k);
       if (saved) ph.style.backgroundImage = 'url(' + saved + ')';
       function show(url) { ph.style.backgroundImage = 'url(' + url + ')'; save(k, url); }
       input.addEventListener('change', function () {

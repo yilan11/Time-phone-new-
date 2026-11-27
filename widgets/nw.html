@@ -1,0 +1,124 @@
+<div class="nw">
+  <span class="cn tl"></span>
+  <span class="cn br"></span>
+  <div class="panel">
+    <div class="txt" contenteditable="true" data-ph="写点什么吧"></div>
+  </div>
+  <label class="dot" title="换颜色">
+    <input type="color" value="#b9dce4">
+  </label>
+</div>
+
+<style>
+  .nw {
+    --panel: #b9dce4;   /* 蓝色区域的颜色，可以改 */
+    --line: #6b6b6b;    /* 角框颜色 */
+    --ink: #3b4a52;     /* 字的颜色 */
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 120px;
+    box-sizing: border-box;
+    background: transparent;
+    container-type: size;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  /* 蓝色区域：按你图里的比例，组件变大它也变大 */
+  .nw .panel {
+    position: absolute;
+    left: 14%; right: 17%;
+    top: 7%; bottom: 9.5%;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .nw .txt {
+    width: 100%;
+    max-height: 100%;
+    padding: 10% 8%;
+    box-sizing: border-box;
+    color: var(--ink);
+    font-size: clamp(12px, 7cqmin, 28px);
+    line-height: 1.6;
+    text-align: center;
+    word-break: break-word;
+    white-space: pre-wrap;
+    outline: none;
+    overflow-y: auto;
+  }
+  .nw .txt:empty::before { content: attr(data-ph); opacity: .45; }  /* 清空后显示提示字 */
+  /* 左上、右下两个角框（伸出蓝色区域外面） */
+  .nw .cn {
+    position: absolute;
+    pointer-events: none;
+  }
+  .nw .cn.tl {
+    left: 2.5%; top: 1%;
+    width: 46%; height: 14.5%;
+    border-top: 2px solid var(--line);
+    border-left: 2px solid var(--line);
+  }
+  .nw .cn.br {
+    right: 2.5%; bottom: 1%;
+    width: 53%; height: 16.5%;
+    border-bottom: 2px solid var(--line);
+    border-right: 2px solid var(--line);
+  }
+  /* 换色小圆点：放在左下角空白处，不挡字 */
+  .nw .dot {
+    position: absolute;
+    left: 3%; bottom: 3%;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.18);
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .nw .dot input {
+    position: absolute; inset: 0;
+    opacity: 0;
+    width: 100%; height: 100%;
+    padding: 0; border: 0;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  (function () {
+    var me = document.currentScript;
+    var box = (me && me.previousElementSibling && me.previousElementSibling.previousElementSibling) || document.querySelector('.nw');
+    var txt = box.querySelector('.txt');
+    var pick = box.querySelector('input[type=color]');
+    var KT = 'nwText', KC = 'nwColor';
+    function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    try {
+      var t = localStorage.getItem(KT);
+      var c = localStorage.getItem(KC);
+      txt.textContent = (t !== null) ? t : '写点什么吧';
+      if (c) { box.style.setProperty('--panel', c); pick.value = c; }
+    } catch (e) { txt.textContent = '写点什么吧'; }
+
+    // 换行：只插一个换行符，避免安卓上插入多余的空行
+    txt.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertText', false, '\n'); }
+    });
+    // 粘贴：只保留纯文字，不带别处的字体和颜色
+    txt.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var s = (e.clipboardData || window.clipboardData).getData('text');
+      document.execCommand('insertText', false, s);
+    });
+    txt.addEventListener('input', function () {
+      if (txt.innerHTML === '<br>') txt.innerHTML = '';   // 删光后让提示字出现
+      save(KT, txt.innerText.replace(/\n$/, ''));
+    });
+    pick.addEventListener('input', function () {
+      box.style.setProperty('--panel', pick.value);
+      save(KC, pick.value);
+    });
+  })();
+</script>
