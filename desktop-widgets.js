@@ -79,6 +79,8 @@ window.snowfallWidgetUI=(()=>{
  }
  const appliedLooks=new WeakMap();
   function applyLook(node,look){
+   // 大字的外观只作用在中间的色块上，角线和空白不变。
+   node=node?.querySelector?.(':scope>.snow-bigtext-block')||node;
    const old=appliedLooks.get(node);
    if(old?.look===look)return;
    for(const prop of old?.props||[])node.style.removeProperty(prop);
