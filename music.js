@@ -201,7 +201,7 @@ window.snowfallMusic=(()=>{
    if(st.cookie){
     login.append($('p','',`已登录：${st.user?.nickname||'网易云账号'}`),btn('退出登录',()=>{st.cookie='';st.user=null;save();refreshWho();openSetup();}));
    }else{
-    login.append($('h3','','登录（可选，听会员歌和看自己的歌单）'));
+    login.append($('h3','','登录（可选）'),$('p','music-tip','不登录也能搜歌、听歌。登录后可以听会员歌、看每日推荐和自己的歌单。'));
     // 手机验证码
     const pf=$('form','music-field'),pi=$('input'),ci=$('input'),send=btn('发验证码',async()=>{lo.textContent='发送中…';try{await call('/captcha/sent',{phone:pi.value.trim()});lo.textContent='验证码已发送';}catch(err){lo.textContent=err.message;}});
     pi.type='tel';pi.placeholder='手机号';ci.inputMode='numeric';ci.placeholder='验证码';
@@ -210,24 +210,34 @@ window.snowfallMusic=(()=>{
     pf.addEventListener('submit',async e=>{e.preventDefault();lo.textContent='登录中…';
      try{const d=await call('/login/cellphone',{phone:pi.value.trim(),captcha:ci.value.trim()});await finishLogin(d.cookie);lo.textContent='';}catch(err){lo.textContent=err.message;}});
     // 二维码
-    const qb=btn('用另一台设备扫码登录',startQr,'music-link'),qbox=$('div','music-qr');
+    const qb=btn('生成登录二维码',startQr,'widget-primary music-qr-btn'),qbox=$('div','music-qr');
+    const qtip=$('p','music-tip','截图或保存二维码 → 打开网易云 App「扫一扫」→ 从相册选这张图 → 在网易云里点确认，再回到这里。');
     async function startQr(){
      clearInterval(qrTimer);qbox.replaceChildren($('p','music-status','生成二维码…'));
      try{
       const key=(await call('/login/qr/key'))?.data?.unikey;
       const qr=(await call('/login/qr/create',{key,qrimg:true}))?.data;
-      const img=$('img');img.src=qr.qrimg;img.alt='网易云登录二维码';const s=$('p','music-status','用网易云 App 扫一扫');
-      qbox.replaceChildren(img,s);
-      qrTimer=setInterval(async()=>{
+      const img=$('img');img.src=qr.qrimg;img.alt='网易云登录二维码';const s=$('p','music-status','等待扫码…');
+      const dl=$('a','music-link','保存二维码图片');dl.href=qr.qrimg;dl.download='网易云登录二维码.png';
+      qbox.replaceChildren(img,dl,s);
+      let busy=false;
+      const check=async()=>{
+       if(busy||!img.isConnected){if(!img.isConnected)stopQr();return;}busy=true;
        try{const d=await call('/login/qr/check',{key});
-        if(d.code===800){clearInterval(qrTimer);s.textContent='二维码过期了，再点一次生成。';}
-        else if(d.code===802)s.textContent='已扫码，请在手机上确认';
-        else if(d.code===803){clearInterval(qrTimer);await finishLogin(d.cookie);}
-       }catch{}
-      },2500);
+        if(d.code===800){stopQr();s.textContent='二维码过期了，再点一次生成。';}
+        else if(d.code===802)s.textContent='已扫码，请在网易云里点确认';
+        else if(d.code===803){stopQr();await finishLogin(d.cookie);}
+       }catch{}finally{busy=false;}
+      };
+      // 从网易云切回来时立刻查一次（后台时浏览器会放慢计时器）
+      const onBack=()=>{if(!document.hidden)check();};
+      function stopQr(){clearInterval(qrTimer);document.removeEventListener('visibilitychange',onBack);}
+      document.addEventListener('visibilitychange',onBack);
+      qrTimer=setInterval(check,2500);
      }catch(err){qbox.replaceChildren($('p','music-status',err.message));}
     }
-    login.append(pf,lo,qb,qbox);
+    const more=$('details','music-more'),sum=$('summary','','用手机验证码登录');more.append(sum,pf,lo);
+    login.append(qtip,qb,qbox,more);
    }
    setup.append(login);
   }
