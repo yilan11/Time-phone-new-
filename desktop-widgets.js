@@ -157,12 +157,12 @@ window.snowfallWidgetUI=(()=>{
     const date=localDate(settings.date),today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
     const days=date?Math.round((date-today)/86400000):null;
     kicker.textContent=settings.title?.trim()||'倒计时';
-    main.textContent=days===null?'—':days===0?'今天':`${Math.abs(days)} 天`;
+    if(days===null||days===0)main.textContent=days===null?'—':'今天';else{const n=text('b','snow-num',String(Math.abs(days)));main.replaceChildren(n,text('small','snow-unit','天'));}
     sub.textContent=days===null?'还未设定日期':days===0?settings.date:`${days>0?'距离':'已过'} · ${settings.date}`;
    }else if(id==='year'){
     const y=now.getFullYear(),first=Date.UTC(y,0,1),last=Date.UTC(y+1,0,1),today=Date.UTC(y,now.getMonth(),now.getDate());
     const pct=(today-first)/(last-first)*100;
-    kicker.textContent=`${y} 年度进度`;main.textContent=`${Math.floor(pct)}%`;sub.textContent=`今年还剩 ${(last-today)/86400000-1} 天（不含今天）`;bar.value=pct;
+    kicker.textContent=`${y} 年度进度`;main.replaceChildren(text('b','snow-num',String(Math.floor(pct))),text('small','snow-unit','%'));sub.textContent=`今年还剩 ${(last-today)/86400000-1} 天（不含今天）`;bar.value=pct;
    }
   }};
  }
