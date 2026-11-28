@@ -177,3 +177,7 @@ $('chat').querySelector('header b').textContent='kk小助手';$('chatInput').pla
 
 $('chatEditRole').onclick=()=>commEditRole(comm.contacts.find(c=>c.id===activeContact));
 $('contactAvatarClear').onclick=()=>{contactAvatarData='';contactAvatarShow()};
+
+// 给小剧场等内嵌 App 读取接口配置与通讯角色（同源 iframe）。
+window.snowApi=()=>apiConfig;
+try{Object.defineProperty(window,"comm",{get:()=>comm,configurable:true})}catch{}
