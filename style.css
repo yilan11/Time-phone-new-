@@ -110,3 +110,25 @@ input[type=file].snow-pick-original{display:none!important}
 .mcp-box{margin-top:22px}.mcp-quick{display:flex;gap:8px;margin:8px 0}.mcp-quick button{flex:1;padding:11px;border:1px solid #ddd;border-radius:12px;background:#f6f7fa;color:#445;font-size:13px}
 .mcp-row{border:1px solid #e6e6ea;border-radius:12px;padding:10px 12px;margin:8px 0;background:#fbfbfc}.mcp-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.mcp-row small{display:block;color:#999;font-size:11px;word-break:break-all;margin:4px 0}.mcp-switch{font-size:12px;display:flex;gap:4px;align-items:center}.mcp-acts{display:flex;gap:8px}.mcp-acts button{flex:1;padding:8px;border:0;border-radius:10px;background:#eee;color:#555;font-size:12px}
 .mcp-box .api-form{margin-top:10px}.mcp-box details summary{font-size:13px;color:#667;padding:6px 0}.mcp-box details[open]{display:flex;flex-direction:column;gap:12px}
+/* 设置 App */
+.set-wrap{flex:1;min-height:0;display:flex;flex-direction:column;background:#f6f6f8}.set-view{flex:1;min-height:0;overflow:auto;padding:6px 16px 28px}
+.set-view h3{font-size:12px;color:#8a8a92;font-weight:500;margin:18px 4px 8px}
+.set-card,.set-row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:#fff;color:#333;text-align:left;padding:12px 14px;font:inherit}
+.set-card{border-radius:16px;padding:16px 14px}.set-card i,.set-row i{margin-left:auto;font-style:normal;color:#bbb;font-size:20px}
+.set-group{background:#fff;border-radius:14px;overflow:hidden}.set-group .set-row+.set-row{border-top:1px solid #f0f0f2}
+.set-txt{display:flex;flex-direction:column;min-width:0;gap:3px}.set-txt b{font-size:15px;font-weight:550}.set-txt small{font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.set-ico{width:30px;height:30px;border-radius:9px;background:#eef1f6;color:#5a6b80;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.set-avatar{width:58px;height:58px;border-radius:50%;background:#e9edf3;color:#556;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0}.set-avatar img{width:100%;height:100%;object-fit:cover}.set-avatar.big{width:96px;height:96px;font-size:36px;margin:8px auto 0}
+.set-ver{text-align:center;margin-top:24px}
+.set-view .api-form{background:#fff;border-radius:16px;padding:16px;margin-top:10px}
+.set-model{display:flex;gap:8px;align-items:stretch}.set-model input{flex:1;min-width:0}.set-api .set-pull{flex-shrink:0;padding:0 12px;border-radius:10px;background:#eef1f6;color:#456;font-size:12px}
+.set-models{border:1px solid #e6e6ea;border-radius:12px;padding:8px;background:#fafafb}.set-models-head{display:flex;flex-direction:column;gap:6px}.set-models-head small{color:#999;font-size:11px}.set-models-head input{padding:8px!important;font-size:14px!important}
+.set-models-list{max-height:220px;overflow:auto;display:flex;flex-direction:column;margin-top:6px}.set-models-list button{background:none!important;color:#345!important;text-align:left;border-bottom:1px solid #eee!important;border-radius:0!important;padding:10px 6px!important;font-size:13px!important;word-break:break-all}
+.set-api .set-save,.set-view .set-save{padding:15px;font-size:16px;border-radius:14px}
+.set-two{display:flex;gap:10px}.set-two button{flex:1;padding:12px;border:0;border-radius:12px;background:#eee;color:#555;font-size:13px}
+.set-presets{display:flex;flex-wrap:wrap;gap:8px}.set-presets>small{width:100%;color:#999;font-size:11px}
+.set-chip{display:flex;align-items:center;background:#eef1f6;border-radius:20px;overflow:hidden}.set-chip button{background:none!important;color:#345!important;padding:7px 10px!important;font-size:12px!important;border-radius:0!important}.set-chip .set-chip-x{padding:7px 10px 7px 2px!important;color:#999!important}
+.set-log{display:flex;flex-direction:column;gap:8px;margin-top:8px}.set-log-item{background:#fff;border-radius:12px;padding:10px 12px;font-size:12px;color:#444;word-break:break-all}.set-log-item small{display:block;color:#999;font-size:11px;margin-bottom:4px}
+#setLogStatus{margin:8px 4px}.set-view[data-v=log] .set-two{margin-top:10px}
+#setOldReset h3{margin-top:16px}#setOldReset .danger{width:100%}
+.set-view .mcp-box{margin-top:6px}
