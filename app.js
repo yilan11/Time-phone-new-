@@ -35,6 +35,7 @@ try{
 const endpoint=apiConfig.base.endsWith('/chat/completions')?apiConfig.base:apiConfig.base+'/chat/completions';
 const history=state.messages.filter(m=>!m.text.startsWith('【演示回复】')).slice(-30).map(m=>({role:m.mine?'user':'assistant',content:m.text}));
 let systemPrompt='你在虚构小手机中扮演角色。'+(comm.contacts.find(c=>c.id===activeContact)?.persona||'温和自然的阿遥')+'。不要声称能在网页关闭后行动、看到现实环境或主动推送消息。';
+try{if(window.snowWorld)systemPrompt+=window.snowWorld.inject(activeContact,history.slice(-6).map(h=>h.content).join('\n'))}catch(e){console.warn('世界书读取失败',e)}
 if(activeContact==='kk')systemPrompt+=`
 用户问到雪落机美化时，按以下实际输入限制给出可手动复制的内容。未指定目标且无法判断时，问清是桌面、App 图标还是哪一种小组件。标注粘贴位置和保存步骤；不同输入框的片段分开。你只能给建议，不能声称自动修改或保存项目，也不能声称已发布或已替用户应用。
 桌面：主题 → 桌面美化 → 全局主题 CSS → 配色与文字，最多 1600 字符，仅允许 --ice-text、--ice-muted、--ice-50、--ice-100、--ice-200、--ice-300、--ice-glass、--ice-border、--ice-dock、--theme-accent，值必须是颜色，不用渐变。标题（30 字）、小字（60 字）、纯色背景和统一图标底色属于独立控件。填好后点「保存桌面美化」。
@@ -98,7 +99,8 @@ async function advanceStory(text,choice){
  const endpoint=apiConfig.base.endsWith('/chat/completions')?apiConfig.base:apiConfig.base+'/chat/completions';
  const system='你是中文互动小说的叙事者，扮演场景中的角色，与用户共同推进虚构剧情。角色设定：'+story.config.persona+'\n世界背景：'+story.config.world+'\n以细腻但简洁的叙事回应用户行动，每次约150至350字。不要替用户决定行动、台词和内心。保持角色与世界设定一致，结尾留出用户行动空间。历史中标为预设试玩的文本仅为体验素材。';
  const history=story.messages.slice(-40).map(m=>({role:m.mine?'user':'assistant',content:(m.demo?'【预设试玩】':'')+m.text}));
- const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:system},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
+ let systemFull=system;try{if(window.snowWorld)systemFull+=window.snowWorld.inject(null,history.slice(-6).map(h=>h.content).join('\n'))}catch{}
+ const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:systemFull},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
  if(!response.ok)throw new Error('HTTP '+response.status+'。'+({401:'请检查密钥。',403:'请检查权限。',404:'请检查地址和模型。',429:'请求过多或额度不足。'}[response.status]||'请检查服务商状态。'));
  const data=await response.json(),reply=data?.choices?.[0]?.message?.content;if(typeof reply!=='string'||!reply.trim())throw new Error('接口没有返回文字。');
  story.messages.push({mine:false,text:reply.trim(),time:Date.now()});if(storySave())$('storyStatus').textContent='剧情已续写并保存在本机。';
