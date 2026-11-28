@@ -46,6 +46,7 @@ window.snowfallWidgetUI=(()=>{
  }
  // 只接收项目自带头像或本地压缩的头像，不接收任意链接。
  const panelAvatar='snowfall-assets/widget-panel-avatar.png',panelColor='#b9dce4',panelTextLimit=120;
+ const panelBlank='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 10%22%3E%3Crect width=%2210%22 height=%2210%22 fill=%22%23fff%22/%3E%3C/svg%3E';
  const panelAvatarValid=value=>typeof value==='string'&&value.length<=100000&&photoValid(value);
  function clean(id,value){
   if(id==='panel'){
@@ -127,7 +128,8 @@ window.snowfallWidgetUI=(()=>{
     function linear(channel){return channel<=.04045?channel/12.92:((channel+.055)/1.055)**2.4;}
     return {node,draw(settings){
      const value=clean('panel',settings);
-     if(avatar.getAttribute('src')!==value.avatarSrc)avatar.src=value.avatarSrc;
+     const shown=value.avatarSrc===panelAvatar?panelBlank:value.avatarSrc;
+     if(avatar.getAttribute('src')!==shown)avatar.src=shown;avatar.classList.toggle('is-blank',shown===panelBlank);
      if(message.textContent!==value.text)message.textContent=value.text;
      message.hidden=!value.text.trim();
      if(node.style.getPropertyValue('--panel-color')!==value.panelColor){
@@ -498,5 +500,16 @@ const reset=button('使用默认小猫',()=>{change++;input.value='';delete draf
   }
   refresh();return {open,refresh,showList};
  }
-  return {clean,createCard,applyLook,mount};
+  // 桌面上直接点文字或图片：返回可以就地修改的内容；点别处返回 null（打开半屏编辑）。
+  function quickTarget(typeId,el){
+   if(!el?.closest)return null;
+   if(typeId==='photo'&&el.closest('.snow-widget-image'))return {kind:'image',key:'src',label:'换一张照片',read:file=>importPhoto(file)};
+   if(typeId==='panel'&&el.closest('.snow-panel-avatar'))return {kind:'image',key:'avatarSrc',label:'换头像',read:file=>importPhoto(file,panelAvatarValid)};
+   if(typeId==='panel'&&el.closest('.snow-panel-text'))return {kind:'text',key:'text',label:'面板文字',max:panelTextLimit,multiline:true};
+   if(typeId==='memo'&&el.closest('.snow-widget-main'))return {kind:'text',key:'text',label:'便签内容',max:500,multiline:true};
+   if(typeId==='countdown'&&el.closest('.snow-widget-kicker'))return {kind:'text',key:'title',label:'事件名称',max:28};
+   if(typeId==='bigtext'&&el.closest('.snow-widget-bigtext-content'))return {kind:'text',key:'text',label:`大字内容（最多 ${bigTextLimit} 字，回车换列）`,max:bigTextLimit,multiline:true};
+   return null;
+  }
+  return {clean,createCard,applyLook,mount,quickTarget,importPhoto};
 })();

@@ -15,7 +15,8 @@ const widgetDefs=[
  {id:'art',category:'记录与装饰',selector:'.home-art',name:'装饰',icon:'✧',description:'原来的冰蓝插画',w:2,h:2,initial:{page:0,x:2,y:0}},
  {id:'quote',category:'记录与装饰',selector:'.widget',name:'文字',icon:'❞',description:'显示「美化」里设置的桌面文案',w:4,h:1,initial:{page:0,x:0,y:2}},
   {id:'bigtext',category:'记录与装饰',card:true,name:'大字',icon:'字',description:'角线框着一块色块，文字从上往下竖排',w:2,h:2,optional:true},
-  {id:'panel',category:'记录与装饰',card:true,name:'蓝色面板',icon:'◈',description:'用自选头像、文字和底色装饰桌面',w:2,h:2,optional:true}
+  {id:'panel',category:'记录与装饰',card:true,name:'蓝色面板',icon:'◈',description:'用自选头像、文字和底色装饰桌面',w:2,h:2,optional:true},
+  {id:'music',category:'影音',create:()=>window.snowfallMusic?.createWidget(),name:'音乐',icon:'♪',description:'正在播放的歌，可直接暂停、切歌；连接网易云',w:2,h:2,optional:true}
 ];
 const home=document.getElementById('home'),inbox=home.querySelector('.app-grid');
 const definitions=new Map(widgetDefs.map(def=>[def.id,def]));
@@ -145,7 +146,7 @@ const done=toolbar.querySelector('.desktop-done');
  }
  function createCalendarWidget(){
  const node=document.createElement('div');node.className='desktop-calendar';
- const open=document.createElement('button');open.type='button';open.className='mini-open';open.onclick=()=>go('app-calendar');
+ const open=document.createElement('button');open.type='button';open.className='mini-open';open.onclick=e=>{if(e.target.closest('.mini-month'))return;go('app-calendar');};
  const title=document.createElement('span'),days=document.createElement('span');title.className='mini-month';days.className='mini-days';days.setAttribute('aria-hidden','true');open.append(title,days);node.append(open);
  const frame=document.querySelector('#app-calendar iframe');let last='';
  function update(){
@@ -204,6 +205,7 @@ const done=toolbar.querySelector('.desktop-done');
  }
  function refreshCards(){const now=new Date();for(const item of items.values())drawWidget(item,now);}
  function returnHome(id,message){
+  closeSheet();
   const item=items.get(id);
   if(item&&current!==item.page){current=item.page;render();}
   go('home');item?.node.focus();if(message)hint.textContent=message;
@@ -211,7 +213,76 @@ const done=toolbar.querySelector('.desktop-done');
  function openWidget(id){
   const item=items.get(id);
   if(!editing||!readable||!item?.typeId)return;
-  clearGesture(false);go('app-widgets');widgetManager.open(item.typeId,id,true);
+  clearGesture(false);persist();setEdit(false);openSheet(id);
+ }
+ // 半屏编辑：把「小组件」页的编辑器搬进底部弹层，改完放回去。
+ const sheet=document.createElement('div');sheet.className='widget-sheet';sheet.hidden=true;
+ sheet.innerHTML='<div class="widget-sheet-backdrop"></div><div class="widget-sheet-panel" role="dialog" aria-modal="true" aria-label="编辑小组件"><div class="widget-sheet-grip" aria-hidden="true"></div></div>';
+ (home.closest('.phone')||document.body).append(sheet);
+ const sheetPanel=sheet.querySelector('.widget-sheet-panel'),manager=document.querySelector('#app-widgets .widget-manager'),managerHome=manager?.parentElement;
+ let sheetOpen=false;
+ function openSheet(id){
+  const item=items.get(id);if(!readable||!item?.typeId||!manager)return;
+  closeQuick();sheetPanel.append(manager);sheet.hidden=false;sheetOpen=true;
+  widgetManager.open(item.typeId,id,true);manager.scrollTop=0;
+ }
+ function closeSheet(){
+  if(!sheetOpen)return;sheetOpen=false;sheet.hidden=true;
+  widgetManager.showList();managerHome.append(manager);
+ }
+ sheet.querySelector('.widget-sheet-backdrop').addEventListener('click',closeSheet);
+ // 就地修改：点文字弹出输入框，点图片直接选新图。
+ const quick=document.createElement('div');quick.className='widget-quick';quick.hidden=true;
+ quick.innerHTML='<div class="widget-sheet-backdrop"></div><form class="widget-quick-panel"><label><span></span><textarea rows="4"></textarea><input type="text"></label><p class="widget-form-error" role="status"></p><div class="widget-quick-actions"><button type="button" data-quick="cancel">取消</button><button type="submit" class="widget-primary">保存</button></div></form>';
+ (home.closest('.phone')||document.body).append(quick);
+ const quickForm=quick.querySelector('form'),quickArea=quick.querySelector('textarea'),quickLine=quick.querySelector('input'),quickError=quick.querySelector('.widget-form-error');
+ let quickJob=null;
+ function closeQuick(){quick.hidden=true;quickJob=null;quickError.textContent='';}
+ quick.querySelector('.widget-sheet-backdrop').addEventListener('click',closeQuick);
+ quick.querySelector('[data-quick=cancel]').addEventListener('click',closeQuick);
+ function applySettings(id,patch){
+  const item=items.get(id);if(!item)return '找不到这个小组件。';
+  const result=saveWidget(item.typeId,{w:item.w,h:item.h},{...item.settings,...patch},{instanceId:id,stay:true});
+  return result.error||'';
+ }
+ function openQuickText(id,spec,value,save){
+  quickJob={id,spec,save};quickError.textContent='';
+  quick.querySelector('label>span').textContent=spec.label;
+  const field=spec.multiline?quickArea:quickLine;
+  quickArea.hidden=!spec.multiline;quickLine.hidden=!!spec.multiline;
+  field.maxLength=spec.max||200;field.value=value||'';
+  quick.hidden=false;requestAnimationFrame(()=>{field.focus();field.setSelectionRange?.(field.value.length,field.value.length);});
+ }
+ quickForm.addEventListener('submit',e=>{
+  e.preventDefault();if(!quickJob)return;
+  const field=quickJob.spec.multiline?quickArea:quickLine;
+  const problem=quickJob.save(field.value);
+  if(problem){quickError.textContent=problem;return;}
+  closeQuick();hint.textContent='已保存';
+ });
+ const picker=document.createElement('input');picker.type='file';picker.accept='image/*';
+ let pickJob=null;
+ picker.addEventListener('change',async()=>{
+  const file=picker.files[0],job=pickJob;picker.value='';if(!file||!job)return;
+  hint.textContent='正在读取图片…';
+  try{const src=await job.spec.read(file);const problem=applySettings(job.id,{[job.spec.key]:src});hint.textContent=problem||'图片已更换';}
+  catch(err){hint.textContent=`${err.message||'无法读取图片'} 原图片未更改。`;}
+ });
+ function tapWidget(e){
+  const node=e.target.closest('.desktop-item'),item=node&&items.get(node.dataset.desktopId);
+  if(!item?.typeId)return false;
+  if(e.target.closest('[data-music-action],[data-music-open]'))return true;
+  if(item.typeId==='calendar'&&!e.target.closest('.mini-month'))return true;
+  if(item.typeId==='quote'&&e.target.closest('[data-widget-field=homeTitle],[data-widget-field=homeSubtitle],strong,p')){
+   const api=window.snowfallTheme;if(!api)return false;
+   const sub=!!e.target.closest('[data-widget-field=homeSubtitle],p'),q=api.getQuote();
+   openQuickText(item.id,{label:sub?'小字':'大标题',max:sub?60:30},sub?q.subtitle:q.title,value=>api.setQuote(sub?q.title:value,sub?value:q.subtitle));
+   return true;
+  }
+  const spec=widgetUI.quickTarget(item.typeId,e.target);
+  if(spec?.kind==='image'){pickJob={id:item.id,spec};picker.click();return true;}
+  if(spec?.kind==='text'){openQuickText(item.id,spec,item.settings?.[spec.key],value=>applySettings(item.id,{[spec.key]:value}));return true;}
+  openSheet(item.id);return true;
  }
  function refreshManagers(){widgetManager.refresh();themeWidgets?.refresh();}
  function removeWidget(id,fromDesktop=true){
@@ -321,6 +392,7 @@ home.addEventListener('pointerup',e=>{if(!gesture||e.pointerId!==gesture.pointer
 home.addEventListener('pointercancel',()=>{suppressUntil=Date.now()+500;clearGesture(false);});
 home.addEventListener('lostpointercapture',()=>{if(gesture)clearGesture(false);});
 home.addEventListener('click',e=>{if(isWidgetControl(e))return;if(e.target.closest('.desktop-item')&&(editing||Date.now()<suppressUntil)){e.preventDefault();e.stopImmediatePropagation();}},true);
+ home.addEventListener('click',e=>{if(editing||isWidgetControl(e)||!e.target.closest('.desktop-stage'))return;tapWidget(e);});
  home.addEventListener('contextmenu',e=>{if(e.target.closest('.desktop-stage'))e.preventDefault();});
  home.addEventListener('keydown',e=>{if(isWidgetControl(e))return;const node=e.target.closest('.desktop-item');if(!node)return;if(e.key==='F2'){e.preventDefault();setEdit(true);}if(editing&&(e.key==='Enter'||e.key===' ')){e.preventDefault();done.focus();}});
 window.addEventListener('blur',()=>{if(gesture)clearGesture(false);});

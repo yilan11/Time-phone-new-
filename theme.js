@@ -322,6 +322,8 @@
  }));
  back.setAttribute('aria-label','返回桌面');
  applyDesktop();fillDesktop();collectApps();fillApp();fillBatch();
+ // 桌面「文字」小组件点击即可改字：直接写回主题设置。
+ window.snowfallTheme={getQuote:()=>({title:saved.title,subtitle:saved.subtitle}),setQuote(title,subtitle){const status={textContent:''};const next={...saved,title:asText(title,30).trim()||defaults.title,subtitle:asText(subtitle,60)};if(!save(next,status,'ok'))return status.textContent||'保存失败';applyDesktop();fillDesktop();return '';}};
  // 有些 App 会异步注册到原列表；只给新增按钮应用外观，不替换节点。
  if(inbox)new MutationObserver(()=>{
   const before=entries.size;collectApps();
