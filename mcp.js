@@ -2,9 +2,9 @@
    只在当前浏览器保存配置（snowfall-mcp-v1）。使用 Streamable HTTP 协议。 */
 (function(){
 const KEY='snowfall-mcp-v1';
-const DEFAULT_PROXY='';
+const DEFAULT_PROXY='https://xueluo-mcp.onrender.com';
 let cfg={servers:[],proxy:DEFAULT_PROXY};
-try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.servers))cfg={...cfg,...v}}catch{}
+try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.servers)){cfg={...cfg,...v};if(!cfg.proxy)cfg.proxy=DEFAULT_PROXY}}catch{}
 const sessions={};      // id -> {sid, ready, tools}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch{alert('MCP 设置保存失败：浏览器存储不足。')}}
 const $=id=>document.getElementById(id);
