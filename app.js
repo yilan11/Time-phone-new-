@@ -30,7 +30,7 @@ if(apiConfig.enabled&&!apiConfig.key){apiStatus('请重新填写密钥并保存�
 message(text,true);input.value='';
 if(!apiConfig.enabled){message('【演示回复】我看到了你的消息。请在设置中连接 AI，启用真实回复。',false);return}
 chatBusy=true;const button=$('chatForm').querySelector('button');button.disabled=true;input.disabled=true;apiStatus('正在请求 AI…');
-const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),60000);
+const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),window.snowMcp&&window.snowMcp.active()?150000:60000);
 try{
 const endpoint=apiConfig.base.endsWith('/chat/completions')?apiConfig.base:apiConfig.base+'/chat/completions';
 const history=state.messages.filter(m=>!m.text.startsWith('【演示回复】')).slice(-30).map(m=>({role:m.mine?'user':'assistant',content:m.text}));
@@ -42,10 +42,17 @@ App：在主题 → App 美化选中 App，仅改桌面图标，不改 App 内�
 普通小组件：打开组件编辑器，在「自定义风格 → 自定义 CSS」填写，最多 4000 字符，仅允许 background、background-color、background-image、background-size、background-position、background-repeat、color、border、border-color、border-width、border-style、border-radius、box-shadow、text-shadow、font-size、font-weight、font-family、letter-spacing、backdrop-filter、-webkit-backdrop-filter。需要图片时用上传控件，最后在编辑器保存。
 大字组件不用 CSS：「大字内容」最多 120 字，只填文字；「文字颜色」用颜色控件（给 #RRGGBB 值）；「背景模式」选透明、纯色或图片，纯色填「背景颜色」，图片由用户上传，最后在编辑器保存。
 用于粘贴的 CSS 只给“属性: 值;”，不要添加选择器、:root、大括号、引号、HTML、脚本、url()、var() 或外部链接。使用可识别的 CSS 值，比如六位十六进制色值；说明文字写在代码片段之外。`;
+let reply;
+if(window.snowMcp&&window.snowMcp.active()){
+try{reply=await window.snowMcp.chat({endpoint,key:apiConfig.key,model:apiConfig.model,messages:[{role:'system',content:systemPrompt},...history],signal:controller.signal,onStatus:t=>{$('apiStatus').textContent=t;$('chatStatus').textContent=t}})}
+catch(err){if(err.status)throw new Error(err.message+({401:'请检查密钥。',403:'请检查接口权限。',404:'请检查地址和模型名称。',429:'请求过多或额度不足。'}[err.status]||''));throw err}
+message(reply.trim(),false);apiStatus('AI 回复成功。');
+}else{
 const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiConfig.key},body:JSON.stringify({model:apiConfig.model,messages:[{role:'system',content:systemPrompt},...history],stream:false}),signal:controller.signal,credentials:'omit',redirect:'error'});
 if(!response.ok)throw new Error('接口返回 HTTP '+response.status+'。'+({401:'请检查密钥。',403:'请检查接口权限。',404:'请检查地址和模型名称。',429:'请求过多或额度不足。'}[response.status]||'请检查服务商状态。'));
 const data=await response.json();const reply=data?.choices?.[0]?.message?.content;if(typeof reply!=='string'||!reply.trim())throw new Error('接口没有返回可显示的文字，请检查模型是否支持 Chat Completions。');
 message(reply.trim(),false);apiStatus('AI 回复成功。');
+}
 }catch(err){const reason=err.name==='AbortError'?'请求超时（60 秒）。':err instanceof TypeError?'网络请求失败，可能是跨域限制、地址错误或网络不可用。':err.message;apiStatus('回复失败：'+reason);alert('AI 回复失败：'+reason+'\n你的消息已保留，未生成模拟回复。')}finally{clearTimeout(timer);chatBusy=false;button.disabled=false;input.disabled=false;apiStatus($('apiStatus').textContent)}
 });
 function renderPosts(){const box=$('posts');box.replaceChildren();state.posts.forEach(post=>{const card=el('article','card');const top=el('div','card-top');top.append(el('strong','','☁ 阿遥'),el('span','tag',post.type));card.append(top,el('p','',post.text));const like=el('button','action'+(post.liked?' selected':''),`♡ ${post.likes} 喜欢`);like.addEventListener('click',()=>{post.liked=!post.liked;post.likes+=post.liked?1:-1;save();renderPosts()});card.append(like);if(post.type==='剧情事件'){const yes=el('button','action'+(post.choice==='去看看'?' selected':''),'去看看');const no=el('button','action'+(post.choice==='先别去'?' selected':''),'先别去');[yes,no].forEach((btn,i)=>{btn.disabled=!!post.choice;btn.addEventListener('click',()=>{post.choice=i===0?'去看看':'先别去';state.notices.unshift({text:`你选择了「${post.choice}」；这段剧情待续（演示）`,target:'feed',read:false});save();renderPosts();renderNotices()});card.append(btn)});if(post.choice)card.append(el('div','comments',`你的选择：${post.choice} · 剧情待续`))}if(post.comments.length){const comments=el('div','comments');post.comments.forEach(c=>comments.append(el('div','',`你：${c}`)));card.append(comments)}const form=el('form','comment-form');const input=el('input');input.placeholder='写一条评论…';input.maxLength=500;input.required=true;const send=el('button','','评论');send.type='submit';form.append(input,send);form.addEventListener('submit',e=>{e.preventDefault();const text=input.value.trim();if(!text)return;post.comments.push(text);save();renderPosts()});card.append(form);box.append(card)})}
